@@ -1,0 +1,9 @@
+node_modules
+dist
+build-meta
+test-results
+playwright-report
+.git
+docs
+tests
+e2e
