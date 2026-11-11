@@ -1,4 +1,9 @@
-# Trama
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo/trama-lockup-dark.svg">
+    <img src="docs/brand/logo/trama-lockup.svg" alt="Trama" width="240">
+  </picture>
+</h1>
 
 [English](README.md) · **Català** · [Castellano](README.es.md)
 
@@ -74,4 +79,5 @@ public/          fitxers estàtics que es copien tal qual
 deploy/          configuració de nginx i capçaleres de seguretat
 scripts/         scripts de desplegament i d'informació de compilació
 docs/            pla i encàrrec original
+docs/brand/      paquet de marca: originals del logotip, colors i guia d'ús
 ```

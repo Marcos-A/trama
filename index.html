@@ -3,14 +3,24 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F6F5F2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16171A" media="(prefers-color-scheme: dark)" />
     <meta name="robots" content="noindex" />
     <title>Trama</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" id="favicon" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
   </head>
   <body>
+    <header>
+      <a class="marca" href="/" aria-label="Trama">
+        <img src="/logo/trama-mark-auto.svg" width="22" height="22" alt="" />
+        <span>Trama</span>
+      </a>
+    </header>
     <main>
-      <h1>Trama</h1>
       <p>En construcció.</p>
     </main>
     <footer id="build"></footer>

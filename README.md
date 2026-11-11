@@ -1,4 +1,9 @@
-# Trama
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo/trama-lockup-dark.svg">
+    <img src="docs/brand/logo/trama-lockup.svg" alt="Trama" width="240">
+  </picture>
+</h1>
 
 **English** · [Català](README.ca.md) · [Castellano](README.es.md)
 
@@ -71,4 +76,5 @@ public/          static files copied as-is
 deploy/          nginx config and security headers
 scripts/         deploy and build-info scripts
 docs/            plan and original brief
+docs/brand/      brand pack: logo masters, colour and usage guide
 ```
