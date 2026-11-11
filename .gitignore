@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build-meta/
+test-results/
+playwright-report/
+.env
+.env.*
+.DS_Store
+
+# Local instructions for Claude Code; not part of the repository.
+CLAUDE.md
