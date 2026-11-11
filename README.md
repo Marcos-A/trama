@@ -1,5 +1,7 @@
 # Trama
 
+**English** · [Català](README.ca.md) · [Castellano](README.es.md)
+
 *Trama* is Catalan and Spanish for the weft of a fabric, and for the plot of a story. It's a
 browser app for working with video that weaves tracks together: video, audio, subtitles and
 translations.
@@ -10,7 +12,7 @@ a meeting, is being built.
 ## What it will do
 
 | Phase | Feature |
-|---|---|
+| --- | --- |
 | 1 | Record a Teams meeting open in a Chrome or Edge tab (video and tab audio) and save it on your own computer |
 | 2 | Import recordings; transcribe them (Catalan first) with timestamps; search and jump to a moment in the video |
 | 3 | Edit subtitles (SRT/VTT), translate them into Catalan keeping the timings, show both languages side by side |
@@ -37,7 +39,7 @@ docker run --rm -it -u "$(id -u):$(id -g)" -e HOME=/tmp/home \
 ```
 
 | Command | What it does |
-|---|---|
+| --- | --- |
 | `npm install` | Install dependencies |
 | `npm run dev` | Start the dev server on port 5173 |
 | `npm run build` | Type-check and build the static site into `dist/` |
@@ -51,7 +53,7 @@ example through an SSH or VS Code port forward), not by the server's IP address.
 The site is a static Vite build served by nginx in a Docker container, behind Caddy.
 
 | | Production | Preview |
-|---|---|---|
+| --- | --- | --- |
 | Branch | `main` | `preview` |
 | Checkout | `/srv/apps/trama` | `/srv/apps/trama-preview` (git worktree) |
 | Deploy | `bash scripts/deploy_production.sh` | `bash scripts/deploy_preview.sh` |
@@ -63,7 +65,7 @@ serves at `/build-info.json`. Always pass `-f <compose file>` to `docker compose
 
 ## Project layout
 
-```
+```text
 src/             app source (TypeScript)
 public/          static files copied as-is
 deploy/          nginx config and security headers
