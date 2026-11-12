@@ -7,9 +7,11 @@
 
 [English](README.md) · [Català](README.ca.md) · **Castellano**
 
-La *trama* de un tejido son los hilos que se cruzan con la urdimbre, y la de una historia es su
-argumento. Trama es una aplicación web para trabajar con vídeo que entreteje pistas: vídeo,
-audio, subtítulos y traducciones.
+La *trama* de un tejido son los hilos que se cruzan con la urdimbre y forman una malla que
+retiene lo que pasa por ella; la de una historia es su argumento. Trama es una aplicación web
+que tiende esa malla sobre el vídeo: atrapa una reunión mientras sucede (vídeo y audio de la
+pestaña) y le entreteje transcripciones, subtítulos y traducciones para que no se escape nada de
+lo que se dice y nunca se pierda el hilo.
 
 **Estado:** en desarrollo inicial. El sitio muestra una página provisional; se está
 construyendo la primera función, la grabación de reuniones.

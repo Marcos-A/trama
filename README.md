@@ -7,9 +7,11 @@
 
 **English** · [Català](README.ca.md) · [Castellano](README.es.md)
 
-*Trama* is Catalan and Spanish for the weft of a fabric, and for the plot of a story. It's a
-browser app for working with video that weaves tracks together: video, audio, subtitles and
-translations.
+*Trama* is Catalan and Spanish for the weft of a fabric, and for the plot of a story. The weft
+is the thread that crosses the warp and, woven tight, makes a mesh that holds what passes
+through it. Trama is a browser app that casts that mesh over video: it catches a meeting as it
+happens (video and tab audio), then weaves in transcripts, subtitles and translations so that
+nothing said slips through and the plot can always be followed.
 
 **Status:** early development. The site shows a placeholder page; the first feature, recording
 a meeting, is being built.

@@ -7,9 +7,11 @@
 
 [English](README.md) · **Català** · [Castellano](README.es.md)
 
-La *trama* d'un teixit són els fils que s'entrecreuen amb l'ordit, i la d'una història és
-l'argument. Trama és una aplicació web per treballar amb vídeo que entreteixeix pistes: vídeo,
-àudio, subtítols i traduccions.
+La *trama* d'un teixit són els fils que s'entrecreuen amb l'ordit i formen una malla que reté
+el que hi passa; la d'una història és l'argument. Trama és una aplicació web que estén aquesta
+malla sobre el vídeo: atrapa una reunió mentre té lloc (vídeo i àudio de la pestanya) i hi
+entreteixeix transcripcions, subtítols i traduccions perquè no s'escapi res del que s'hi diu i
+no se'n perdi mai el fil.
 
 **Estat:** en desenvolupament inicial. El lloc mostra una pàgina provisional; s'està
 construint la primera funció, la gravació de reunions.
