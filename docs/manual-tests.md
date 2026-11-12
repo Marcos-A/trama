@@ -22,6 +22,37 @@ Reading the log: `chunk-gap` means the recorder delivered nothing for over 2.5 s
 or a stalled encoder); `audio-silence-start` means 15 s of digital silence on the tab audio;
 `sample.heapMB` should stay flat (the recording is not held in memory).
 
+Summarising logs: `node scripts/spike-log-summary.mjs <log.json> ...` (or, without Node on the
+host, `docker run --rm --network none -v "$PWD/scripts:/s:ro" -v <logs dir>:/logs:ro
+node:24-slim node /s/spike-log-summary.mjs /logs/<file>.json`). It prints each recording's
+size, duration, gaps, heap trend, hidden time, audio events and errors, plus a draft Results
+row; fill in macOS, the check number and A/V sync by hand.
+
+The log lives in page memory only: for 7c, the killed recording's own log is lost. Download
+the log of the reopened page (it shows `leftovers` and `recover`) and note by hand roughly
+when you killed the tab, to compare with the recovered file's length.
+
+### Suggested session order
+
+Long runs cover several checks at once:
+
+1. **Chrome, 120 min** in a real meeting: checks 1, 3 (background for the first ≥ 10 min:
+   other tabs, minimise, other apps), 4, 5a (note the size at 60 min from the log) and 5b.
+   Check A/V sync near the start, at ~60 min and at the end (a clap or a spoken number on camera).
+2. **Edge, 60 min**: checks 2, 3 again, 4, 5a.
+3. **Short runs (2–5 min) in each browser**: 7a–7e, then 6 (native Teams window) last.
+
+Download the log after each recording, before reloading the page.
+
+### Decision gate (PLAN §5.2)
+
+- **Web-only** if, in both browsers, 1–5b pass: no audio drop-outs, no `chunk-gap` beyond the
+  occasional isolated one, heap flat, A/V sync within ~0.5 s at 120 min, and 7b–7d keep the file.
+- **`tabCapture` extension** if a background tab loses video or audio, gaps repeat while
+  hidden, or long runs drift or stall in a way the page cannot avoid.
+- **Native capture (ScreenCaptureKit)** only if recording the native Teams app (check 6)
+  turns out to be a requirement; it is not expected to work from the browser.
+
 ## Spike checklist (brief §6)
 
 | # | Check | Pass criteria |

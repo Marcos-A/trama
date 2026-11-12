@@ -3,7 +3,8 @@
 *Trama* (Catalan/Spanish): the weft of a fabric, and the plot of a story. The app weaves
 tracks together: video, audio, subtitles, translations.
 
-Status: planning. Nothing is built yet. The original brief for phase 1 is
+Status: scaffold live on both URLs; recording spike (§5.2) on the `spike` branch, under
+manual testing. The original brief for phase 1 is
 [spec/especificacion_mvp_grabador_reuniones.md](spec/especificacion_mvp_grabador_reuniones.md)
 (Spanish); this plan adapts it to this server and to the wider product.
 
@@ -12,9 +13,9 @@ Status: planning. Nothing is built yet. The original brief for phase 1 is
 | Phase | Feature | Where it runs |
 |---|---|---|
 | **1 (urgent)** | Record a Teams meeting open in a Chrome/Edge tab: video + tab audio, no mic/camera, saved locally | Browser only |
-| 2 | Import existing recordings; transcription (Catalan first) with timestamps; search and jump to the moment in the video | Browser first; server only if quality requires it |
+| 2 | Import existing recordings (WebM, MP4); transcription (Catalan first) with timestamps; search and jump to the moment in the video | Browser first; server only if quality requires it |
 | 3 | Subtitle editor (SRT/VTT); translation into Catalan keeping timings; bilingual view; export | Browser + possibly server |
-| 4 | Burned-in subtitles, more formats, downloading/streaming features, possible native-app capture via a local component | Mixed |
+| 4 | Burned-in subtitles; more formats, starting with converting a saved WebM to MP4 (H.264/AAC re-encode in the browser, see §7); downloading/streaming features, possible native-app capture via a local component | Mixed |
 
 Principle carried from the brief: **recording never depends on the server.** Later phases may
 add server-side processing, but each one needs its own consent and data-handling design
@@ -131,5 +132,12 @@ The brief's §7 list, plus:
 - Access: public static page with `noindex` (assumed), or behind authentication?
 - Phase 2 transcription: in-browser model (privacy, slower) vs. server-side (quality, needs a
   consent and data design)? Decide after phase 1.
-- Should phase 1 already offer MP4 output (Chrome's MediaRecorder supports it in recent
-  versions) for easier sharing, or stay WebM-only as the brief says?
+
+### Decided
+
+- **Phase 1 records WebM only** (decided 2026-11-12). Stability comes first: VP8/VP9 + Opus
+  WebM is MediaRecorder's most tested path in Chrome and Edge, and the OPFS writer, recovery
+  and repair are built around it. MP4 comes later as a separate feature that converts a
+  saved WebM: re-encode to H.264/AAC in the browser (WebCodecs + a bundled MP4 muxer), so no
+  media leaves the machine and the CSP stays unchanged. Planned in phase 4 ("more formats");
+  phase 2 import accepts both WebM and MP4.
