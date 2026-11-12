@@ -20,8 +20,50 @@
         <span>Trama</span>
       </a>
     </header>
-    <main>
-      <p>En construcció.</p>
+    <main id="app" data-state="idle">
+      <p class="avis-spike">Prototip de proves (spike). Serveix per validar la gravació; no és la versió final.</p>
+
+      <p id="estat-anunci" class="visualment-amagat" aria-live="polite"></p>
+
+      <section id="vista-inici" class="vista">
+        <button id="grava" class="boto-principal" type="button">Grava una pestanya</button>
+        <p class="ajuda">Tria la pestanya de Teams i deixa marcada l'opció per compartir també l'àudio de la pestanya. No es fa servir el micròfon ni la càmera.</p>
+        <p id="avis-espai" class="avis" hidden></p>
+      </section>
+
+      <section id="vista-gravant" class="vista" hidden>
+        <p class="indicador"><span class="punt" aria-hidden="true"></span>Gravant</p>
+        <p id="cronometre" class="temps cronometre">00:00:00</p>
+        <p id="estat-so" class="estat-so"></p>
+        <p id="mida" class="detall"></p>
+        <button id="atura" class="boto-atura" type="button">Atura</button>
+      </section>
+
+      <section id="vista-desat" class="vista" hidden>
+        <video id="reproductor" controls preload="metadata"></video>
+        <label class="camp">Nom del fitxer
+          <input id="nom" type="text" spellcheck="false" />
+        </label>
+        <button id="desa" class="boto-principal" type="button">Desa el vídeo</button>
+        <div class="fila">
+          <button id="esborra" class="boto-secundari" type="button">Esborra la còpia del navegador</button>
+          <button id="nova" class="boto-secundari" type="button">Nova gravació</button>
+        </div>
+      </section>
+
+      <p id="missatge" class="avis" hidden></p>
+
+      <section id="pendents" class="pendents" hidden>
+        <h2>Gravacions sense desar</h2>
+        <p class="detall">Han quedat al navegador d'una sessió anterior. Recupera-les per desar-les o esborra-les.</p>
+        <ul id="llista-pendents"></ul>
+      </section>
+
+      <details class="registre">
+        <summary>Registre de proves</summary>
+        <button id="baixa-registre" class="boto-secundari" type="button">Baixa el registre (JSON)</button>
+        <pre id="registre"></pre>
+      </details>
     </main>
     <footer id="build"></footer>
     <script type="module" src="/src/main.ts"></script>

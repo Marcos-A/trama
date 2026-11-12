@@ -36,11 +36,241 @@ header {
 }
 
 main {
-  display: grid;
-  place-content: center;
-  text-align: center;
-  font-size: var(--mida-estat);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espai-5);
+  padding-block: var(--espai-5);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visualment-amagat {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.avis-spike {
+  margin: 0;
+  font-size: var(--mida-detall);
   color: var(--fum);
+  text-align: center;
+}
+
+.vista {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espai-4);
+  text-align: center;
+}
+
+.ajuda,
+.detall {
+  margin: 0;
+  color: var(--fum);
+}
+
+.detall {
+  font-size: var(--mida-detall);
+}
+
+/* Buttons: one primary action per screen (indigo); Stop is ink, never red. */
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radi);
+  min-height: 44px;
+  padding-inline: var(--espai-5);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.boto-principal,
+.boto-atura {
+  min-height: var(--alcada-boto);
+  font-weight: var(--pes-fort);
+  border: none;
+  width: 100%;
+  max-width: 320px;
+}
+
+.boto-principal {
+  background: var(--indi);
+  color: var(--sobre-indi);
+}
+
+.boto-principal:hover:not(:disabled) {
+  background: var(--indi-fosc);
+}
+
+.boto-atura {
+  background: var(--tinta);
+  color: var(--lli);
+}
+
+.boto-secundari {
+  background: var(--superficie);
+  color: var(--tinta);
+  border: 1px solid var(--linia-forta);
+}
+
+.fila {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--espai-3);
+}
+
+/* Recording view. Red is reserved for the live indicator. */
+.indicador {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espai-2);
+  font-weight: var(--pes-fort);
+  font-size: var(--mida-estat);
+  color: var(--gravant-text);
+}
+
+.punt {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gravant);
+  animation: batec 1.6s ease-in-out infinite;
+}
+
+@keyframes batec {
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .punt { animation: none; }
+}
+
+.cronometre {
+  margin: 0;
+  font-size: var(--mida-cronometre);
+  line-height: 1;
+}
+
+.estat-so {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espai-2);
+}
+
+.estat-so::before {
+  content: "";
+  width: 64px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--indi) calc(var(--nivell, 0) * 100%), var(--linia) 0);
+}
+
+.estat-so:not([data-so="ok"]) {
+  color: var(--safra-text);
+}
+
+/* Warnings and errors: saffron + text. */
+.avis {
+  margin: 0;
+  padding: var(--espai-3) var(--espai-4);
+  background: var(--safra-suau);
+  border: 1px solid var(--safra-vora);
+  border-radius: var(--radi);
+  color: var(--tinta);
+}
+
+video {
+  width: 100%;
+  border-radius: var(--radi);
+  background: #000;
+}
+
+.camp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espai-1);
+  width: 100%;
+  text-align: left;
+  font-size: var(--mida-detall);
+  color: var(--fum);
+}
+
+.camp input {
+  font: inherit;
+  font-size: var(--mida-text);
+  color: var(--tinta);
+  background: var(--superficie);
+  border: 1px solid var(--linia-forta);
+  border-radius: var(--radi-petit);
+  padding: var(--espai-3);
+}
+
+.pendents h2 {
+  margin: 0 0 var(--espai-2);
+  font-size: var(--mida-estat);
+}
+
+[data-state="recording"] .pendents,
+[data-state="stopping"] .pendents {
+  display: none;
+}
+
+.pendents ul {
+  list-style: none;
+  margin: var(--espai-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espai-2);
+}
+
+.pendents li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espai-2);
+  padding: var(--espai-3);
+  background: var(--superficie);
+  border: 1px solid var(--linia);
+  border-radius: var(--radi);
+}
+
+.pendents li span {
+  flex: 1 1 200px;
+  overflow-wrap: anywhere;
+  font-size: var(--mida-detall);
+}
+
+.registre summary {
+  cursor: pointer;
+  color: var(--fum);
+  font-size: var(--mida-detall);
+}
+
+.registre pre {
+  max-height: 320px;
+  overflow: auto;
+  font-family: var(--font-temps);
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--superficie);
+  border: 1px solid var(--linia);
+  border-radius: var(--radi-petit);
+  padding: var(--espai-3);
 }
 
 footer {
