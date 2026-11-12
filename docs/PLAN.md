@@ -143,8 +143,13 @@ The brief's §7 list, plus:
 - Phase 2 transcription: in-browser model (privacy, slower) vs. server-side (quality, needs a
   consent and data design)? Decide after phase 1.
 - Transcription languages: Catalan is the priority, Spanish a close second (decided
-  2026-11-12). Choose and evaluate models on both, with real meeting audio in each language;
-  meetings may switch between the two.
+  2026-11-12). **Mixed meetings are the normal case, not an edge case:** in Catalan-speaking
+  areas people switch between Catalan and Spanish freely, between speakers and within one
+  person's turn. Requirement: each passage is transcribed in the language it was spoken in
+  (never translated or forced into one language), with the language marked per segment so
+  search, subtitles and phase 3 translation can use it. Evaluate candidate models on real
+  mixed-language meeting audio, comparing a forced language against per-segment detection
+  and models tuned on Catalan/Spanish code-switching.
 
 ### Decided
 
