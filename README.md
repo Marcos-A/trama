@@ -19,7 +19,7 @@ a meeting, is being built.
 | Phase | Feature |
 | --- | --- |
 | 1 | Record a Teams meeting open in a Chrome or Edge tab (video and tab audio) and save it on your own computer |
-| 2 | Import recordings; transcribe them (Catalan first) with timestamps; search and jump to a moment in the video |
+| 2 | Import recordings; transcribe them (Catalan first, then Spanish) with timestamps; search and jump to a moment in the video |
 | 3 | Edit subtitles (SRT/VTT), translate them into Catalan keeping the timings, show both languages side by side |
 | 4 | Burned-in subtitles and more export formats (MP4 converted from a saved WebM) |
 

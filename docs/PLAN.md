@@ -13,7 +13,7 @@ manual testing; step 3 started (WebM repair, Playwright suite). The original bri
 | Phase | Feature | Where it runs |
 |---|---|---|
 | **1 (urgent)** | Record a Teams meeting open in a Chrome/Edge tab: video + tab audio, no mic/camera, saved locally | Browser only |
-| 2 | Import existing recordings (WebM, MP4); transcription (Catalan first) with timestamps; search and jump to the moment in the video | Browser first; server only if quality requires it |
+| 2 | Import existing recordings (WebM, MP4); transcription (Catalan first, Spanish a close second) with timestamps; search and jump to the moment in the video | Browser first; server only if quality requires it |
 | 3 | Subtitle editor (SRT/VTT); translation into Catalan keeping timings; bilingual view; export | Browser + possibly server |
 | 4 | Burned-in subtitles; more formats, starting with converting a saved WebM to MP4 (H.264/AAC re-encode in the browser, see §7); downloading/streaming features, possible native-app capture via a local component | Mixed |
 
@@ -142,6 +142,9 @@ The brief's §7 list, plus:
 - Access: public static page with `noindex` (assumed), or behind authentication?
 - Phase 2 transcription: in-browser model (privacy, slower) vs. server-side (quality, needs a
   consent and data design)? Decide after phase 1.
+- Transcription languages: Catalan is the priority, Spanish a close second (decided
+  2026-11-12). Choose and evaluate models on both, with real meeting audio in each language;
+  meetings may switch between the two.
 
 ### Decided
 

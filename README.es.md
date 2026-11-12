@@ -19,7 +19,7 @@ construyendo la primera función, la grabación de reuniones.
 | Fase | Función |
 | --- | --- |
 | 1 | Grabar una reunión de Teams abierta en una pestaña de Chrome o Edge (vídeo y audio de la pestaña) y guardarla en tu ordenador |
-| 2 | Importar grabaciones; transcribirlas (primero en catalán) con marcas de tiempo; buscar y saltar a un momento del vídeo |
+| 2 | Importar grabaciones; transcribirlas (primero en catalán y después en castellano) con marcas de tiempo; buscar y saltar a un momento del vídeo |
 | 3 | Editar subtítulos (SRT/VTT), traducirlos al catalán manteniendo los tiempos, mostrar los dos idiomas uno al lado del otro |
 | 4 | Subtítulos incrustados y más formatos de exportación (MP4 convertido a partir de un WebM guardado) |
 

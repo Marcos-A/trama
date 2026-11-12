@@ -19,7 +19,7 @@ construint la primera funció, la gravació de reunions.
 | Fase | Funció |
 | --- | --- |
 | 1 | Gravar una reunió de Teams oberta en una pestanya de Chrome o Edge (vídeo i àudio de la pestanya) i desar-la al teu ordinador |
-| 2 | Importar gravacions; transcriure-les (primer en català) amb marques de temps; cercar i saltar a un moment del vídeo |
+| 2 | Importar gravacions; transcriure-les (primer en català i després en castellà) amb marques de temps; cercar i saltar a un moment del vídeo |
 | 3 | Editar subtítols (SRT/VTT), traduir-los al català mantenint els temps, mostrar les dues llengües una al costat de l'altra |
 | 4 | Subtítols incrustats i més formats d'exportació (MP4 convertit a partir d'un WebM desat) |
 
