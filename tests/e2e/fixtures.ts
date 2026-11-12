@@ -5,19 +5,22 @@ import { test as base, expect, type Page } from '@playwright/test';
 
 export interface CaptureOptions {
   audio?: boolean;
+  /** Canvas size; larger makes conversions slow enough to cancel. Default 640×360. */
+  width?: number;
+  height?: number;
 }
 
 /** Runs in the page: canvas video (numbered frames) + oscillator audio. */
-function fakeCapture({ audio }: CaptureOptions): void {
+function fakeCapture({ audio, width = 640, height = 360 }: CaptureOptions): void {
   navigator.mediaDevices.getDisplayMedia = async () => {
     const c = document.createElement('canvas');
-    c.width = 640;
-    c.height = 360;
+    c.width = width;
+    c.height = height;
     const g = c.getContext('2d')!;
     let n = 0;
     setInterval(() => {
       g.fillStyle = `hsl(${n++ % 360} 60% 50%)`;
-      g.fillRect(0, 0, 640, 360);
+      g.fillRect(0, 0, width, height);
       g.fillStyle = '#fff';
       g.font = '40px sans-serif';
       g.fillText(String(n), 40, 80);
@@ -41,7 +44,7 @@ export const test = base.extend<{ openApp: (opts?: CaptureOptions & { query?: st
     const problems: string[] = [];
     const origin = new URL(baseURL!).origin;
     const pages: Page[] = [];
-    await use(async ({ audio = true, query = '' } = {}) => {
+    await use(async ({ audio = true, width, height, query = '' } = {}) => {
       const page = await context.newPage();
       pages.push(page);
       page.on('console', (m) => {
@@ -53,7 +56,7 @@ export const test = base.extend<{ openApp: (opts?: CaptureOptions & { query?: st
         if (!url.startsWith(origin) && !url.startsWith('blob:') && !url.startsWith('data:')) problems.push(`request: ${url}`);
       });
       page.on('dialog', (d) => void d.accept());
-      await page.addInitScript(fakeCapture, { audio });
+      await page.addInitScript(fakeCapture, { audio, width, height });
       await page.goto('/' + query);
       return page;
     });

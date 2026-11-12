@@ -20,10 +20,10 @@ construint la primera funció, la gravació de reunions.
 
 | Fase | Funció |
 | --- | --- |
-| 1 | Gravar una reunió de Teams oberta en una pestanya de Chrome o Edge (vídeo i àudio de la pestanya) i desar-la al teu ordinador |
+| 1 | Gravar una reunió de Teams oberta en una pestanya de Chrome o Edge (vídeo i àudio de la pestanya) i desar-la al teu ordinador, en WebM o convertida a MP4 al mateix navegador |
 | 2 | Importar gravacions; transcriure-les (primer en català i després en castellà) amb marques de temps; cercar i saltar a un moment del vídeo |
 | 3 | Editar subtítols (SRT/VTT), traduir-los al català mantenint els temps, mostrar les dues llengües una al costat de l'altra |
-| 4 | Subtítols incrustats i més formats d'exportació (MP4 convertit a partir d'un WebM desat) |
+| 4 | Subtítols incrustats i més formats d'exportació |
 
 El pla complet és a [docs/PLAN.md](docs/PLAN.md) (en anglès); l'encàrrec original de la fase 1
 (en castellà) és a [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
@@ -33,7 +33,7 @@ El pla complet és a [docs/PLAN.md](docs/PLAN.md) (en anglès); l'encàrrec orig
 La gravació es fa completament al navegador i no es puja mai enlloc: la
 Content-Security-Policy de la pàgina (`connect-src 'self'`) impedeix que el navegador enviï
 dades a cap altre lloc, i la Permissions-Policy bloqueja el micròfon i la càmera. Només es
-captura la pestanya que tries compartir.
+captura la pestanya que tries compartir. La conversió a MP4 també es fa al navegador.
 
 ## Desenvolupament
 

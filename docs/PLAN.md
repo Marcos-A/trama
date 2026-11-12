@@ -4,7 +4,8 @@
 tracks together: video, audio, subtitles, translations.
 
 Status: scaffold live on both URLs; recording spike (§5.2) on the `spike` branch, under
-manual testing; step 3 started (WebM repair, Playwright suite). The original brief for phase 1 is
+manual testing; step 3 started (WebM repair, Playwright suite); WebM→MP4 conversion built early
+on the `mp4-convert` branch (§2, §7). The original brief for phase 1 is
 [spec/especificacion_mvp_grabador_reuniones.md](spec/especificacion_mvp_grabador_reuniones.md)
 (Spanish); this plan adapts it to this server and to the wider product.
 
@@ -15,7 +16,7 @@ manual testing; step 3 started (WebM repair, Playwright suite). The original bri
 | **1 (urgent)** | Record a Teams meeting open in a Chrome/Edge tab: video + tab audio, no mic/camera, saved locally | Browser only |
 | 2 | Import existing recordings (WebM, MP4); transcription (Catalan first, Spanish a close second) with timestamps; search and jump to the moment in the video | Browser first; server only if quality requires it |
 | 3 | Subtitle editor (SRT/VTT); translation into Catalan keeping timings; bilingual view; export | Browser + possibly server |
-| 4 | Burned-in subtitles; more formats, starting with converting a saved WebM to MP4 (H.264/AAC re-encode in the browser, see §7); downloading/streaming features, possible native-app capture via a local component | Mixed |
+| 4 | Burned-in subtitles; more formats (WebM→MP4 is already done, see §2 and §7); downloading/streaming features, possible native-app capture via a local component | Mixed |
 
 Principle carried from the brief: **recording never depends on the server.** Later phases may
 add server-side processing, but each one needs its own consent and data-handling design
@@ -50,8 +51,29 @@ add server-side processing, but each one needs its own consent and data-handling
   4. Check space before and during recording with `navigator.storage.estimate()`
      (2 h ≈ 1–3 GB). Delete the OPFS copy only after a confirmed export.
   *To verify in the spike*, not assume.
+- **MP4 export** (§7 decision; *done* on `mp4-convert`): **Desa en MP4** next to **Desa el
+  vídeo**. A worker (`src/spike/convert.worker.ts`, `src/media/webm-to-mp4.ts`) re-encodes the
+  OPFS recording with WebCodecs, using [Mediabunny](https://mediabunny.dev) (MPL-2.0, pinned)
+  to demux the WebM and mux the MP4. Video: H.264 at the recording's size (even-rounded; later
+  frames of a resized tab are letterboxed into it), medium quality, keyframe every 5 s. Audio:
+  AAC from the platform encoder (Chrome/Edge on macOS and Windows); where there is none (Linux
+  Chromium, so also the test suite) the Opus packets are copied into the MP4 and the user is
+  told QuickTime may not play it. No WebAssembly (Mediabunny's AAC extension would need
+  `'wasm-unsafe-eval'`), so the CSP is unchanged.
+  - With the save dialog, the location is chosen first (the click still counts as a gesture)
+    and the worker writes straight to it, so no second copy in OPFS; without it, the MP4 is
+    built in OPFS (`exports/`, cleared on the next load or conversion) and downloaded.
+  - The output is committed only when complete: cancel or error aborts the writable stream
+    (Mediabunny closes its stream on cancel, which would commit a partial file, so it writes
+    through a wrapper with no `close`) and removes the empty file the dialog created.
+  - moov at the end (no fast start): one streaming pass, little memory, fine for local files.
+  - Chrome's MediaRecorder marks the track `AlphaMode=1` when the source frames have alpha (the
+    test canvas does). Mediabunny would then merge alpha in a `blob:` worker, which
+    `worker-src 'self'` blocks, so the header is read with AlphaMode as 0
+    (`src/media/webm-alpha.ts`).
+  - Holds the recording's Web Lock while converting; the recording itself is never changed.
 - **State machine:** `idle → requesting → recording → stopping → saved | error`, plus
-  `recovering` for the leftover-file path.
+  `recovering` for the leftover-file path and `saved → converting → saved` for MP4.
 - **Background tabs:** Chrome throttles timers in hidden pages (to once a minute after 5 min).
   The stopwatch is derived from timestamps, and health checks hang off recorder/track events,
   not `setInterval`.
@@ -102,7 +124,8 @@ resources.
   machine, missing-audio warning, track `ended`, OPFS writes, recovery, WebM repair and export.
   `bash scripts/test.sh` runs the type check, Node unit tests (`tests/unit`, repair against a
   real Chromium recording in `tests/fixtures`, including 200+ truncation points) and the browser
-  tests (`tests/e2e`) in the Playwright image, with `--network none`; every browser test also
+  tests (`tests/e2e`, including MP4 conversion with the download fallback, a stubbed save
+  dialog, cancel and no-audio; H.264 + Opus, since Linux Chromium has no AAC encoder) in the Playwright image, with `--network none`; every browser test also
   fails on a CSP violation or a request to another origin.
   Chromium only (capture only matters in Chrome/Edge); avoid running alongside other projects'
   browser suites, which load the 6-core server heavily.
@@ -157,5 +180,7 @@ The brief's §7 list, plus:
   WebM is MediaRecorder's most tested path in Chrome and Edge, and the OPFS writer, recovery
   and repair are built around it. MP4 comes later as a separate feature that converts a
   saved WebM: re-encode to H.264/AAC in the browser (WebCodecs + a bundled MP4 muxer), so no
-  media leaves the machine and the CSP stays unchanged. Planned in phase 4 ("more formats");
-  phase 2 import accepts both WebM and MP4.
+  media leaves the machine and the CSP stays unchanged. Planned in phase 4 ("more formats"),
+  built early (2026-11-12, `mp4-convert` branch; design in §2); phase 2 import accepts both
+  WebM and MP4. AAC needs the platform encoder; without it the MP4 keeps Opus audio rather
+  than loosening the CSP for a WebAssembly encoder.

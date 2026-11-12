@@ -20,10 +20,10 @@ a meeting, is being built.
 
 | Phase | Feature |
 | --- | --- |
-| 1 | Record a Teams meeting open in a Chrome or Edge tab (video and tab audio) and save it on your own computer |
+| 1 | Record a Teams meeting open in a Chrome or Edge tab (video and tab audio) and save it on your own computer, as WebM or converted to MP4 in the browser |
 | 2 | Import recordings; transcribe them (Catalan first, then Spanish) with timestamps; search and jump to a moment in the video |
 | 3 | Edit subtitles (SRT/VTT), translate them into Catalan keeping the timings, show both languages side by side |
-| 4 | Burned-in subtitles and more export formats (MP4 converted from a saved WebM) |
+| 4 | Burned-in subtitles and more export formats |
 
 The full plan is in [docs/PLAN.md](docs/PLAN.md); the original phase 1 brief (in Spanish) is in
 [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
@@ -33,7 +33,7 @@ The full plan is in [docs/PLAN.md](docs/PLAN.md); the original phase 1 brief (in
 Recording happens entirely in your browser. The recording is never uploaded: the page's
 Content-Security-Policy (`connect-src 'self'`) stops the browser from sending data anywhere
 else, and its Permissions-Policy blocks the microphone and the camera. Only the tab you choose
-to share is captured.
+to share is captured. Converting to MP4 also happens in the browser.
 
 ## Development
 

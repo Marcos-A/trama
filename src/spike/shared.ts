@@ -33,3 +33,23 @@ export type RepairResponse =
       ms: number;
     }
   | { t: 'error'; name: string; message: string };
+
+/** MP4 conversions for the download fallback are written here and cleared on the next load. */
+export const EXPORTS_DIR = 'exports';
+
+export type ConvertRequest = { t: 'start'; name: string; dest: FileSystemFileHandle } | { t: 'cancel' };
+
+export type ConvertResponse =
+  | { t: 'progress'; fraction: number }
+  | {
+      t: 'done';
+      durationS: number;
+      width: number;
+      height: number;
+      audioCodec: 'aac' | 'opus' | null;
+      inputBytes: number;
+      outputBytes: number;
+      ms: number;
+    }
+  | { t: 'cancelled' }
+  | { t: 'error'; name: string; message: string };

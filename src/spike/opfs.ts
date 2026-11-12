@@ -1,4 +1,12 @@
-import { LOCK_PREFIX, RECORDINGS_DIR, REPAIR_PREFIX, type RepairResponse } from './shared.ts';
+import {
+  EXPORTS_DIR,
+  LOCK_PREFIX,
+  RECORDINGS_DIR,
+  REPAIR_PREFIX,
+  type ConvertRequest,
+  type ConvertResponse,
+  type RepairResponse,
+} from './shared.ts';
 
 async function dir(): Promise<FileSystemDirectoryHandle> {
   const root = await navigator.storage.getDirectory();
@@ -88,29 +96,108 @@ type SavePicker = (opts: {
   types?: { description: string; accept: Record<string, string[]> }[];
 }) => Promise<FileSystemFileHandle>;
 
-/** Saves through the native save dialog when available, otherwise as a download. */
-export async function exportRecording(file: File, name: string): Promise<'saved' | 'downloaded' | 'cancelled'> {
-  const picker = (window as Window & { showSaveFilePicker?: SavePicker }).showSaveFilePicker;
-  if (picker) {
-    let handle: FileSystemFileHandle;
-    try {
-      handle = await picker({
-        suggestedName: name,
-        types: [{ description: 'Vídeo WebM', accept: { 'video/webm': ['.webm'] } }],
-      });
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return 'cancelled';
-      throw err;
-    }
-    // Streams from disk to disk: the recording is never held whole in memory.
-    await file.stream().pipeTo(await handle.createWritable());
-    return 'saved';
+const FILE_TYPES = {
+  webm: { description: 'Vídeo WebM', accept: { 'video/webm': ['.webm'] } },
+  mp4: { description: 'Vídeo MP4', accept: { 'video/mp4': ['.mp4'] } },
+};
+
+function savePicker(): SavePicker | undefined {
+  return (window as Window & { showSaveFilePicker?: SavePicker }).showSaveFilePicker;
+}
+
+/** The native save dialog; null if the user cancels, undefined if the browser has none. */
+export async function pickSaveFile(name: string, kind: keyof typeof FILE_TYPES): Promise<FileSystemFileHandle | null | undefined> {
+  const picker = savePicker();
+  if (!picker) return undefined;
+  try {
+    return await picker({ suggestedName: name, types: [FILE_TYPES[kind]] });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return null;
+    throw err;
   }
+}
+
+export function downloadFile(file: Blob, name: string): void {
   const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Saves through the native save dialog when available, otherwise as a download. */
+export async function exportRecording(file: File, name: string): Promise<'saved' | 'downloaded' | 'cancelled'> {
+  const handle = await pickSaveFile(name, 'webm');
+  if (handle === null) return 'cancelled';
+  if (handle) {
+    // Streams from disk to disk: the recording is never held whole in memory.
+    await file.stream().pipeTo(await handle.createWritable());
+    return 'saved';
+  }
+  downloadFile(file, name);
   return 'downloaded';
+}
+
+// ---------------------------------------------------------------- MP4
+
+async function exportsDir(): Promise<FileSystemDirectoryHandle> {
+  const root = await navigator.storage.getDirectory();
+  return root.getDirectoryHandle(EXPORTS_DIR, { create: true });
+}
+
+/**
+ * A file in OPFS to convert into when there is no save dialog; it is then offered as a
+ * download. Earlier ones are removed first: their downloads have long finished.
+ */
+export async function exportFileInBrowser(name: string): Promise<FileSystemFileHandle> {
+  await clearExports();
+  return (await exportsDir()).getFileHandle(name, { create: true });
+}
+
+/** Removes MP4s converted for downloads (on load, and before the next one). */
+export async function clearExports(): Promise<void> {
+  const d = await exportsDir();
+  for await (const name of d.keys()) await d.removeEntry(name).catch(() => {});
+}
+
+export type ConvertOutcome = Extract<ConvertResponse, { t: 'done' }>;
+
+/**
+ * Converts the recording to MP4 into `dest` (worker, see convert.worker.ts), holding the
+ * recording's lock meanwhile so other tabs neither list nor delete it. Resolves to null if
+ * cancelled through `signal`; rejects with the worker's error. `dest` is only written when the
+ * conversion completes.
+ */
+export function convertRecordingToMp4(
+  name: string,
+  dest: FileSystemFileHandle,
+  onProgress: (fraction: number) => void,
+  signal: AbortSignal,
+): Promise<ConvertOutcome | null> {
+  return navigator.locks.request(LOCK_PREFIX + name, () => {
+    const worker = new Worker(new URL('./convert.worker.ts', import.meta.url), { type: 'module' });
+    const send = (msg: ConvertRequest) => worker.postMessage(msg);
+    return new Promise<ConvertOutcome | null>((resolve, reject) => {
+      const onAbort = () => send({ t: 'cancel' });
+      signal.addEventListener('abort', onAbort, { once: true });
+      const finish = () => {
+        signal.removeEventListener('abort', onAbort);
+        worker.terminate();
+      };
+      worker.onmessage = (e: MessageEvent<ConvertResponse>) => {
+        const m = e.data;
+        if (m.t === 'progress') return onProgress(m.fraction);
+        finish();
+        if (m.t === 'done') resolve(m);
+        else if (m.t === 'cancelled') resolve(null);
+        else reject(new DOMException(m.message, m.name));
+      };
+      worker.onerror = (e) => {
+        finish();
+        reject(new Error(e.message || 'convert worker failed'));
+      };
+      send({ t: 'start', name, dest });
+    });
+  });
 }

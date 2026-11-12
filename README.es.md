@@ -20,10 +20,10 @@ construyendo la primera función, la grabación de reuniones.
 
 | Fase | Función |
 | --- | --- |
-| 1 | Grabar una reunión de Teams abierta en una pestaña de Chrome o Edge (vídeo y audio de la pestaña) y guardarla en tu ordenador |
+| 1 | Grabar una reunión de Teams abierta en una pestaña de Chrome o Edge (vídeo y audio de la pestaña) y guardarla en tu ordenador, en WebM o convertida a MP4 en el propio navegador |
 | 2 | Importar grabaciones; transcribirlas (primero en catalán y después en castellano) con marcas de tiempo; buscar y saltar a un momento del vídeo |
 | 3 | Editar subtítulos (SRT/VTT), traducirlos al catalán manteniendo los tiempos, mostrar los dos idiomas uno al lado del otro |
-| 4 | Subtítulos incrustados y más formatos de exportación (MP4 convertido a partir de un WebM guardado) |
+| 4 | Subtítulos incrustados y más formatos de exportación |
 
 El plan completo está en [docs/PLAN.md](docs/PLAN.md) (en inglés); el encargo original de la
 fase 1 está en [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
@@ -33,7 +33,7 @@ fase 1 está en [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md)
 La grabación se hace por completo en el navegador y nunca se sube a ningún sitio: la
 Content-Security-Policy de la página (`connect-src 'self'`) impide que el navegador envíe datos
 a ningún otro lugar, y la Permissions-Policy bloquea el micrófono y la cámara. Solo se captura
-la pestaña que eliges compartir.
+la pestaña que eliges compartir. La conversión a MP4 también se hace en el navegador.
 
 ## Desarrollo
 

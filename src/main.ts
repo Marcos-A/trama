@@ -1,7 +1,18 @@
 import './tokens.css';
 import './style.css';
 import { log, logAsBlob, onLog, storageMB } from './spike/log.ts';
-import { deleteRecording, exportRecording, getRecording, leftoverRecordings, repairRecording } from './spike/opfs.ts';
+import {
+  clearExports,
+  convertRecordingToMp4,
+  deleteRecording,
+  downloadFile,
+  exportFileInBrowser,
+  exportRecording,
+  getRecording,
+  leftoverRecordings,
+  pickSaveFile,
+  repairRecording,
+} from './spike/opfs.ts';
 import { Recording, requestTabStream, type StopReason, type TrackEvent } from './spike/recorder.ts';
 
 // ---------------------------------------------------------------- elements
@@ -12,10 +23,14 @@ const vistaInici = el('vista-inici');
 const vistaGravant = el('vista-gravant');
 const vistaPreparant = el('vista-preparant');
 const progres = el<HTMLProgressElement>('progres');
+const vistaConvertint = el('vista-convertint');
+const progresMp4 = el<HTMLProgressElement>('progres-mp4');
 const vistaDesat = el('vista-desat');
 const btnGrava = el<HTMLButtonElement>('grava');
 const btnAtura = el<HTMLButtonElement>('atura');
 const btnDesa = el<HTMLButtonElement>('desa');
+const btnDesaMp4 = el<HTMLButtonElement>('desa-mp4');
+const btnCancellaMp4 = el<HTMLButtonElement>('cancella-mp4');
 const btnEsborra = el<HTMLButtonElement>('esborra');
 const btnNova = el<HTMLButtonElement>('nova');
 const cronometre = el('cronometre');
@@ -33,11 +48,12 @@ const favicon = el<HTMLLinkElement>('favicon');
 
 // ---------------------------------------------------------------- state
 
-type State = 'idle' | 'requesting' | 'recording' | 'stopping' | 'preparing' | 'saved' | 'error';
+type State = 'idle' | 'requesting' | 'recording' | 'stopping' | 'preparing' | 'converting' | 'saved' | 'error';
 
 let recording: Recording | null = null;
 let current: { name: string; file: File } | null = null;
 let playerUrl: string | null = null;
+let conversion: AbortController | null = null;
 
 // `?quota=<MB>` simulates running out of space (checklist item 7) without filling the disk.
 const quotaParam = new URLSearchParams(location.search).get('quota');
@@ -48,6 +64,7 @@ function setState(s: State): void {
   vistaInici.hidden = !(s === 'idle' || s === 'requesting' || s === 'error');
   vistaGravant.hidden = !(s === 'recording' || s === 'stopping');
   vistaPreparant.hidden = s !== 'preparing';
+  vistaConvertint.hidden = s !== 'converting';
   vistaDesat.hidden = s !== 'saved';
   btnGrava.disabled = s === 'requesting';
   btnAtura.disabled = s === 'stopping';
@@ -329,14 +346,14 @@ reproductor.addEventListener('loadedmetadata', () =>
 );
 reproductor.addEventListener('error', () => log('player-error', { code: reproductor.error?.code, message: reproductor.error?.message }));
 
-function exportName(): string {
-  const base = inputNom.value.trim().replace(/[\\/:*?"<>|]+/g, '-') || current?.name || 'trama.webm';
-  return base.toLowerCase().endsWith('.webm') ? base : `${base}.webm`;
+function exportName(ext: 'webm' | 'mp4'): string {
+  const base = (inputNom.value.trim().replace(/[\\/:*?"<>|]+/g, '-') || current?.name || 'trama').replace(/\.(webm|mp4)$/i, '');
+  return `${base}.${ext}`;
 }
 
 btnDesa.addEventListener('click', async () => {
   if (!current) return;
-  const name = exportName();
+  const name = exportName('webm');
   const t0 = performance.now();
   try {
     const result = await exportRecording(current.file, name);
@@ -349,6 +366,73 @@ btnDesa.addEventListener('click', async () => {
     log('export-failed', { name: e.name, message: e.message });
     showMessage(`No s'ha pogut desar el vídeo (${e.name}). La còpia del navegador es manté.`);
   }
+});
+
+// ---------------------------------------------------------------- MP4 (PLAN §7)
+// Re-encodes to H.264/AAC in a worker. With the save dialog, the location is chosen first
+// (while the click still counts as a user gesture) and the MP4 is written straight there;
+// without it, the MP4 is built in OPFS and offered as a download.
+
+btnDesaMp4.addEventListener('click', async () => {
+  if (!current) return;
+  const { name: recName } = current;
+  const name = exportName('mp4');
+  let dest: FileSystemFileHandle;
+  let download = false;
+  try {
+    const picked = await pickSaveFile(name, 'mp4');
+    if (picked === null) return;
+    download = picked === undefined;
+    dest = picked ?? (await exportFileInBrowser(name));
+  } catch (err) {
+    const e = err as DOMException;
+    log('mp4-failed', { stage: 'destination', name: e.name, message: e.message });
+    showMessage(`No s'ha pogut desar el vídeo en MP4 (${e.name}). La còpia del navegador es manté.`);
+    return;
+  }
+
+  hideMessage();
+  progresMp4.value = 0;
+  btnCancellaMp4.disabled = false;
+  conversion = new AbortController();
+  setState('converting');
+  announce('Convertint a MP4.');
+  try {
+    const out = await convertRecordingToMp4(recName, dest, (f) => (progresMp4.value = f), conversion.signal);
+    if (!out) {
+      log('mp4-cancelled', { name });
+      showMessage("Conversió cancel·lada. No s'ha desat cap MP4.");
+      return;
+    }
+    log('mp4', { name, download, ...out });
+    const opus = out.audioCodec === 'opus'
+      ? " L'àudio s'ha desat en Opus perquè aquest navegador no pot codificar AAC: alguns reproductors, com QuickTime, potser no el reproduiran."
+      : '';
+    if (download) {
+      downloadFile(await dest.getFile(), name);
+      showMessage(`S'ha baixat el vídeo en MP4. Comprova que és a la carpeta de baixades abans d'esborrar la còpia del navegador.${opus}`);
+    } else {
+      showMessage(`Vídeo desat en MP4. Ja pots esborrar la còpia del navegador.${opus}`);
+    }
+  } catch (err) {
+    const e = err as DOMException;
+    log('mp4-failed', { stage: 'convert', name: e.name, message: e.message });
+    showMessage(
+      e.name === 'NotSupportedError'
+        ? "Aquest navegador no pot convertir el vídeo a MP4. Pots desar-lo igualment en WebM amb «Desa el vídeo»."
+        : e.name === 'QuotaExceededError'
+          ? "No hi ha prou espai al navegador per convertir el vídeo a MP4. La còpia del navegador es manté."
+          : `No s'ha pogut convertir el vídeo a MP4 (${e.name}). La còpia del navegador es manté.`,
+    );
+  } finally {
+    conversion = null;
+    if (current?.name === recName) setState('saved');
+  }
+});
+
+btnCancellaMp4.addEventListener('click', () => {
+  btnCancellaMp4.disabled = true;
+  conversion?.abort();
 });
 
 btnEsborra.addEventListener('click', async () => {
@@ -414,7 +498,7 @@ async function refreshLeftovers(initial = false): Promise<void> {
 document.addEventListener('visibilitychange', () => log('visibility', document.visibilityState));
 window.addEventListener('pagehide', () => log('pagehide'));
 window.addEventListener('beforeunload', (e) => {
-  if (recording) e.preventDefault(); // asks before closing or reloading mid-recording
+  if (recording || conversion) e.preventDefault(); // asks before closing or reloading mid-recording or conversion
 });
 
 const MAX_LOG_LINES = 300;
@@ -477,6 +561,8 @@ async function init(): Promise<void> {
     avisEspai.textContent = `Hi ha ${storage.free} MB lliures per a gravacions. Una reunió de 2 hores pot ocupar entre 1 i 3 GB.`;
     avisEspai.hidden = false;
   }
+  if (typeof VideoEncoder === 'undefined') btnDesaMp4.hidden = true;
+  await clearExports().catch(() => {});
   await refreshLeftovers(true);
 }
 

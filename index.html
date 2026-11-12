@@ -45,12 +45,21 @@
         <p class="detall">Perquè el reproductor en mostri la durada i s'hi pugui avançar i retrocedir.</p>
       </section>
 
+      <section id="vista-convertint" class="vista" hidden>
+        <p class="titol-estat">Convertint a MP4</p>
+        <progress id="progres-mp4" max="1" value="0" aria-label="Convertint a MP4"></progress>
+        <p class="detall">Pot trigar una estona; deixa aquesta pestanya oberta. La gravació del navegador no canvia.</p>
+        <button id="cancella-mp4" class="boto-secundari" type="button">Cancel·la</button>
+      </section>
+
       <section id="vista-desat" class="vista" hidden>
         <video id="reproductor" controls preload="metadata"></video>
         <label class="camp">Nom del fitxer
           <input id="nom" type="text" spellcheck="false" />
         </label>
         <button id="desa" class="boto-principal" type="button">Desa el vídeo</button>
+        <button id="desa-mp4" class="boto-secundari" type="button">Desa en MP4</button>
+        <p class="detall">«Desa el vídeo» el desa en WebM, tal com s'ha gravat. En MP4 s'obre amb més programes, però cal convertir-lo i triga més.</p>
         <div class="fila">
           <button id="esborra" class="boto-secundari" type="button">Esborra la còpia del navegador</button>
           <button id="nova" class="boto-secundari" type="button">Nova gravació</button>
