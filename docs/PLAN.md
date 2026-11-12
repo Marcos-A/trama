@@ -4,7 +4,7 @@
 tracks together: video, audio, subtitles, translations.
 
 Status: scaffold live on both URLs; recording spike (§5.2) on the `spike` branch, under
-manual testing. The original brief for phase 1 is
+manual testing; step 3 started (WebM repair, Playwright suite). The original brief for phase 1 is
 [spec/especificacion_mvp_grabador_reuniones.md](spec/especificacion_mvp_grabador_reuniones.md)
 (Spanish); this plan adapts it to this server and to the wider product.
 
@@ -39,8 +39,14 @@ add server-side processing, but each one needs its own consent and data-handling
      via `createSyncAccessHandle()` + `flush()`. Writes happen in place, so a crash leaves a
      file playable up to the cut.
   2. On load, detect leftover OPFS recordings and offer to recover them.
-  3. On stop, repair the WebM (MediaRecorder output has no duration/cues and is not seekable,
-     e.g. with `ts-ebml`), then export via `showSaveFilePicker`, falling back to a download.
+  3. On stop, repair the WebM (MediaRecorder output has no duration/cues and is not seekable),
+     then export via `showSaveFilePicker`, falling back to a download. *Done:*
+     `src/media/webm-repair.ts`, our own streaming EBML rewrite instead of `ts-ebml` (which
+     parses the whole file in memory): one pass from the OPFS file to a temporary OPFS file,
+     size/Duration placeholders patched at the end, Cues per video keyframe after the last
+     Cluster, then renamed over the original. A cut-off tail is dropped. 1 GB / 2 h took 10 s
+     in headless Chromium on the server; seeking to 1 h 56 min took 0.3 s. Needs free space for
+     the copy; if the repair fails, the unrepaired file is offered as before.
   4. Check space before and during recording with `navigator.storage.estimate()`
      (2 h ≈ 1–3 GB). Delete the OPFS copy only after a confirmed export.
   *To verify in the spike*, not assume.
@@ -94,6 +100,10 @@ resources.
 - **Automated (server, headless Chromium only):** Playwright with a synthetic stream (canvas
   `captureStream()` + WebAudio oscillator) replacing `getDisplayMedia`. Covers the state
   machine, missing-audio warning, track `ended`, OPFS writes, recovery, WebM repair and export.
+  `bash scripts/test.sh` runs the type check, Node unit tests (`tests/unit`, repair against a
+  real Chromium recording in `tests/fixtures`, including 200+ truncation points) and the browser
+  tests (`tests/e2e`) in the Playwright image, with `--network none`; every browser test also
+  fails on a CSP violation or a request to another origin.
   Chromium only (capture only matters in Chrome/Edge); avoid running alongside other projects'
   browser suites, which load the 6-core server heavily.
 - **Manual (Mac, real Teams):** the brief's §6 checklist, recorded in `docs/manual-tests.md`

@@ -10,9 +10,12 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173 --strictPort",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.19.2",
     "typescript": "^7.0.2",
     "vite": "^8.3.6"
   }

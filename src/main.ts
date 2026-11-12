@@ -1,7 +1,7 @@
 import './tokens.css';
 import './style.css';
 import { log, logAsBlob, onLog, storageMB } from './spike/log.ts';
-import { deleteRecording, exportRecording, getRecording, leftoverRecordings } from './spike/opfs.ts';
+import { deleteRecording, exportRecording, getRecording, leftoverRecordings, repairRecording } from './spike/opfs.ts';
 import { Recording, requestTabStream, type StopReason, type TrackEvent } from './spike/recorder.ts';
 
 // ---------------------------------------------------------------- elements
@@ -10,6 +10,8 @@ const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElem
 const app = el('app');
 const vistaInici = el('vista-inici');
 const vistaGravant = el('vista-gravant');
+const vistaPreparant = el('vista-preparant');
+const progres = el<HTMLProgressElement>('progres');
 const vistaDesat = el('vista-desat');
 const btnGrava = el<HTMLButtonElement>('grava');
 const btnAtura = el<HTMLButtonElement>('atura');
@@ -31,7 +33,7 @@ const favicon = el<HTMLLinkElement>('favicon');
 
 // ---------------------------------------------------------------- state
 
-type State = 'idle' | 'requesting' | 'recording' | 'stopping' | 'saved' | 'error';
+type State = 'idle' | 'requesting' | 'recording' | 'stopping' | 'preparing' | 'saved' | 'error';
 
 let recording: Recording | null = null;
 let current: { name: string; file: File } | null = null;
@@ -45,6 +47,7 @@ function setState(s: State): void {
   app.dataset.state = s;
   vistaInici.hidden = !(s === 'idle' || s === 'requesting' || s === 'error');
   vistaGravant.hidden = !(s === 'recording' || s === 'stopping');
+  vistaPreparant.hidden = s !== 'preparing';
   vistaDesat.hidden = s !== 'saved';
   btnGrava.disabled = s === 'requesting';
   btnAtura.disabled = s === 'stopping';
@@ -256,9 +259,45 @@ async function onStopped(rec: Recording, reason: StopReason, total: number): Pro
     showMessage("No s'ha gravat res.");
     return;
   }
-  await showRecording(rec.name);
-  if (stopMessages[reason]) showMessage(stopMessages[reason]);
+  const warning = await prepareAndShow(rec.name);
+  const text = [stopMessages[reason], warning].filter(Boolean).join(' ');
+  if (text) showMessage(text);
   else hideMessage();
+}
+
+// ---------------------------------------------------------------- repair
+// MediaRecorder's WebM has no duration and seeks badly; the repair rewrites it in OPFS. If it
+// fails (usually no room for the second copy), the unrepaired file is still shown and saved.
+
+async function prepareAndShow(name: string): Promise<string> {
+  clearPlayer();
+  current = null;
+  progres.value = 0;
+  setState('preparing');
+  let warning = '';
+  try {
+    const out = await repairRecording(name, (f) => (progres.value = f));
+    log(out.skipped ? 'repair-skipped' : 'repair', { name, ...out });
+  } catch (err) {
+    const e = err as DOMException;
+    log('repair-failed', { name, error: e.name, message: e.message });
+    warning =
+      (e.name === 'QuotaExceededError'
+        ? "No hi ha prou espai per preparar el vídeo."
+        : "No s'ha pogut preparar el vídeo.") +
+      " Es pot desar igualment, però el reproductor no en mostrarà la durada i pot fallar en avançar o retrocedir.";
+  }
+  try {
+    await showRecording(name);
+  } catch (err) {
+    // Gone meanwhile (deleted from another tab): back to the start.
+    const e = err as DOMException;
+    log('show-failed', { name, error: e.name, message: e.message });
+    setState('idle');
+    await refreshLeftovers();
+    return "No s'ha trobat la gravació al navegador. És possible que s'hagi esborrat des d'una altra pestanya.";
+  }
+  return warning;
 }
 
 // ---------------------------------------------------------------- review and export
@@ -283,7 +322,7 @@ async function showRecording(name: string): Promise<void> {
 
 reproductor.addEventListener('loadedmetadata', () =>
   log('player-metadata', {
-    duration: reproductor.duration, // Infinity until the WebM is repaired (step 3)
+    duration: reproductor.duration, // Infinity (null in JSON) if the repair failed
     width: reproductor.videoWidth,
     height: reproductor.videoHeight,
   }),
@@ -351,7 +390,7 @@ async function refreshLeftovers(initial = false): Promise<void> {
       recupera.addEventListener('click', () => {
         hideMessage();
         log('recover', { name: f.name, size: f.size });
-        void showRecording(f.name);
+        void prepareAndShow(f.name).then((warning) => warning && showMessage(warning));
       });
       const esborra = document.createElement('button');
       esborra.type = 'button';

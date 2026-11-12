@@ -21,7 +21,7 @@ construint la primera funció, la gravació de reunions.
 | 1 | Gravar una reunió de Teams oberta en una pestanya de Chrome o Edge (vídeo i àudio de la pestanya) i desar-la al teu ordinador |
 | 2 | Importar gravacions; transcriure-les (primer en català) amb marques de temps; cercar i saltar a un moment del vídeo |
 | 3 | Editar subtítols (SRT/VTT), traduir-los al català mantenint els temps, mostrar les dues llengües una al costat de l'altra |
-| 4 | Subtítols incrustats i més formats d'exportació |
+| 4 | Subtítols incrustats i més formats d'exportació (MP4 convertit a partir d'un WebM desat) |
 
 El pla complet és a [docs/PLAN.md](docs/PLAN.md) (en anglès); l'encàrrec original de la fase 1
 (en castellà) és a [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
@@ -49,6 +49,7 @@ docker run --rm -it -u "$(id -u):$(id -g)" -e HOME=/tmp/home \
 | `npm run dev` | Inicia el servidor de desenvolupament al port 5173 |
 | `npm run build` | Comprova els tipus i genera el lloc estàtic a `dist/` |
 | `npm run preview` | Serveix `dist/` amb les capçaleres de seguretat de producció |
+| `bash scripts/test.sh` | Comprova els tipus i executa les proves (proves unitàries amb Node i Chromium sense interfície) al contenidor de Playwright, sense xarxa |
 
 La captura de pantalla necessita un context segur: obre el servidor de desenvolupament a
 `http://localhost:5173` (per exemple, amb una redirecció de port d'SSH o de VS Code), no per
@@ -77,7 +78,8 @@ que el lloc serveix a `/build-info.json`. Passa sempre `-f <fitxer compose>` a
 src/             codi de l'aplicació (TypeScript)
 public/          fitxers estàtics que es copien tal qual
 deploy/          configuració de nginx i capçaleres de seguretat
-scripts/         scripts de desplegament i d'informació de compilació
+scripts/         scripts de desplegament, d'informació de compilació, de proves i de resum de registres
+tests/           proves de Playwright: unit/ (Node), e2e/ (Chromium sense interfície), fixtures/
 docs/            pla i encàrrec original
 docs/brand/      paquet de marca: originals del logotip, colors i guia d'ús
 ```

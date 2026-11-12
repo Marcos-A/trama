@@ -13,7 +13,7 @@ import { basename } from 'node:path';
 
 const ERROR_EVENTS = new Set([
   'picker-failed', 'start-failed', 'write-error', 'recorder-error', 'worker-error',
-  'export-failed', 'player-error', 'unsupported', 'non-tab-surface',
+  'export-failed', 'player-error', 'unsupported', 'non-tab-surface', 'repair-failed', 'show-failed',
 ]);
 
 function browserOf(env = {}) {
@@ -117,7 +117,10 @@ function summariseLog(path) {
   console.log(`Page loads: ${loads.length}${loads.some((l) => l.data?.simulatedQuotaMB) ? ` (quota simulation: ${loads.map((l) => l.data?.simulatedQuotaMB).filter(Boolean).join(', ')} MB)` : ''}`);
   for (const l of after('leftovers')) if (Array.isArray(l.data) && l.data.length) console.log(`Leftovers at load: ${l.data.map((f) => `${f.name} (${round1(f.size / 1e6)} MB)`).join(', ')}`);
   for (const r of after('recover')) console.log(`Recovered: ${r.data?.name} (${round1((r.data?.size ?? 0) / 1e6)} MB)`);
-  for (const p of after('player-metadata')) console.log(`Player: ${p.data?.width}×${p.data?.height}, duration ${p.data?.duration ?? 'Infinity (WebM not repaired)'}`);
+  for (const p of after('player-metadata')) console.log(`Player: ${p.data?.width}×${p.data?.height}, duration ${p.data?.duration ?? 'Infinity (WebM not repaired)'} s`);
+  for (const x of after('repair')) console.log(`Repair: ${x.data?.name} → ${x.data?.durationS} s, ${x.data?.cues} cues, ${round1((x.data?.outputBytes ?? 0) / 1e6)} MB in ${x.data?.ms} ms${x.data?.droppedBytes ? `, dropped ${x.data.droppedBytes} B incomplete tail` : ''}`);
+  for (const x of after('repair-skipped')) console.log(`Repair skipped (already repaired): ${x.data?.name}`);
+  for (const x of after('repair-failed')) console.log(`REPAIR FAILED: ${x.data?.name} ${x.data?.error}: ${x.data?.message}`);
   for (const x of after('export')) console.log(`Export: ${x.data?.result} ${x.data?.name} ${round1((x.data?.size ?? 0) / 1e6)} MB in ${x.data?.ms} ms`);
   if (outsideErrors.length) console.log(`Errors outside recordings:\n  ${outsideErrors.join('\n  ')}`);
 

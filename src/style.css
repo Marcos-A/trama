@@ -157,6 +157,19 @@ button:disabled {
   .punt { animation: none; }
 }
 
+/* Preparing view (WebM repair): neutral, not red. */
+.titol-estat {
+  margin: 0;
+  font-weight: var(--pes-fort);
+  font-size: var(--mida-estat);
+}
+
+progress {
+  width: 100%;
+  max-width: 320px;
+  accent-color: var(--indi);
+}
+
 .cronometre {
   margin: 0;
   font-size: var(--mida-cronometre);
@@ -224,7 +237,8 @@ video {
 }
 
 [data-state="recording"] .pendents,
-[data-state="stopping"] .pendents {
+[data-state="stopping"] .pendents,
+[data-state="preparing"] .pendents {
   display: none;
 }
 

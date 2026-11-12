@@ -21,7 +21,7 @@ a meeting, is being built.
 | 1 | Record a Teams meeting open in a Chrome or Edge tab (video and tab audio) and save it on your own computer |
 | 2 | Import recordings; transcribe them (Catalan first) with timestamps; search and jump to a moment in the video |
 | 3 | Edit subtitles (SRT/VTT), translate them into Catalan keeping the timings, show both languages side by side |
-| 4 | Burned-in subtitles and more export formats |
+| 4 | Burned-in subtitles and more export formats (MP4 converted from a saved WebM) |
 
 The full plan is in [docs/PLAN.md](docs/PLAN.md); the original phase 1 brief (in Spanish) is in
 [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
@@ -49,6 +49,7 @@ docker run --rm -it -u "$(id -u):$(id -g)" -e HOME=/tmp/home \
 | `npm run dev` | Start the dev server on port 5173 |
 | `npm run build` | Type-check and build the static site into `dist/` |
 | `npm run preview` | Serve `dist/` with the production security headers |
+| `bash scripts/test.sh` | Type-check and run the tests (Node unit tests and headless Chromium) in the Playwright container, without network |
 
 Screen capture needs a secure context: open the dev server at `http://localhost:5173` (for
 example through an SSH or VS Code port forward), not by the server's IP address.
@@ -74,7 +75,8 @@ serves at `/build-info.json`. Always pass `-f <compose file>` to `docker compose
 src/             app source (TypeScript)
 public/          static files copied as-is
 deploy/          nginx config and security headers
-scripts/         deploy and build-info scripts
+scripts/         deploy, build-info, test and log-summary scripts
+tests/           Playwright tests: unit/ (Node), e2e/ (headless Chromium), fixtures/
 docs/            plan and original brief
 docs/brand/      brand pack: logo masters, colour and usage guide
 ```
