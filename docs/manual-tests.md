@@ -88,3 +88,41 @@ Download the log after each recording, before reloading the page.
 - The repair needs free space for a second copy while it runs. Without it, the video is still
   offered and saved, unrepaired, with a warning.
 - The browser copy is deleted by hand (**Esborra la còpia del navegador**) after export.
+
+## Transcription spike (Mac, Chrome and Edge, WebGPU)
+
+Real timings for [transcription-spike.md](transcription-spike.md): the server has no GPU, so
+WebGPU speed, GPU memory and model download/caching are only measurable here. Audio never leaves
+the Mac: the page fetches only the model files and the page itself.
+
+**Setup.** On the server: `bash scripts/fetch-models.sh` (and the exported fine-tunes), then
+`TRAMA_EVAL=1 npx vite build --outDir dist-eval && TRAMA_EVAL=1 npx vite preview --outDir
+dist-eval --port 4174` in the `transcription` worktree; forward port 4174 with VS Code Remote
+and open `http://localhost:4174/eval.html` (localhost is a secure context, so WebGPU works).
+The first load of each model downloads 0.3–1.9 GB through the tunnel; later loads come from
+the browser cache. Keep the excerpt and its reference on the Mac; pick them with the file
+fields. Close other GPU-heavy tabs. Note the Mac model, chip and RAM once.
+
+For each run: choose model / precision / device → **Carrega el model** → tick the modes →
+**Transcriu i puntua** → **Desa els resultats (JSON)**. Keep the JSON with the run (it holds
+the scores, timings and segments; it does not contain the audio). During the run, watch
+Chrome's Task Manager (⋮ → More tools → Task manager): note the peak memory of the tab, the
+GPU process and the dedicated worker.
+
+| # | Check | Expect / record |
+|---|---|---|
+| T1 | `chrome://gpu`: WebGPU status; in the page console `(await navigator.gpu.requestAdapter()).info` | "Hardware accelerated"; adapter vendor/architecture |
+| T2 | Chrome: whisper-large-v3-turbo q4f16, WebGPU, synthetic fixture (`tests/fixtures/speech-ca-es.webm`), all four modes | Load time (first: download; second: from cache); RTF per mode; peak tab + GPU memory |
+| T3 | Same with the real excerpt + reference | WER overall / ca / es, tag accuracy (model and text), RTF |
+| T4 | Same excerpt: whisper-small q4 WebGPU, and turbo q8 WASM (`?coi=1` and without) | Quality and speed difference; WASM threads count in the model line |
+| T5 | Same excerpt: exported Catalan fine-tune(s) (turbo-cat; BSC code-switching model if exported) q4f16 WebGPU | Spanish WER (does it translate Spanish into Catalan?), Catalan WER, tags |
+| T6 | Edge: repeat T2–T3 with the best model | Same numbers within ~10 %? |
+| T7 | Reload the page, load the same model again | Comes from cache (no long download); note time |
+| T8 | 60-minute real recording (WebM from the recorder), best model and mode | Decode time, total time, RTF, peak memory; tab stays responsive; switch tabs during the run and note whether it slows down |
+| T9 | `await SpeechRecognition.available({ langs: ['ca-ES', 'es-ES'], processLocally: true })` in the console (Chrome) | "available" / "downloadable" / "unavailable" per language — records whether on-device Web Speech is even an option |
+
+### Transcription results
+
+| Date | Browser + version | Mac (chip, RAM) | Check | Model, dtype, device | Mode | WER all / ca / es | Tags model / text | RTF | Peak memory | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | |

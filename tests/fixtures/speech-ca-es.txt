@@ -1,0 +1,6 @@
+[ca] Bon dia a tothom. Avui parlarem del pressupost de l'any vinent i de les noves contractacions.
+[es] Perfecto, pero antes quiero comentar una cosa sobre el calendario de entregas.
+[ca] D'acord, endavant.
+[es] Creo que deberíamos retrasar la primera fase dos semanas, [ca] perquè l'equip encara no té tota la informació.
+[ca] Em sembla bé. Ho apuntem a l'acta.
+[es] Muy bien. Entonces nos vemos el jueves a las diez.

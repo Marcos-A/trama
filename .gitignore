@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-eval/
 build-meta/
 test-results/
 playwright-report/

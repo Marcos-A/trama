@@ -4,7 +4,8 @@
 tracks together: video, audio, subtitles, translations.
 
 Status: scaffold live on both URLs; recording spike (§5.2) on the `spike` branch, under
-manual testing; step 3 started (WebM repair, Playwright suite). The original brief for phase 1 is
+manual testing; step 3 started (WebM repair, Playwright suite). Transcription spike (phase 2) on
+the `transcription` branch: [transcription-spike.md](transcription-spike.md). The original brief for phase 1 is
 [spec/especificacion_mvp_grabador_reuniones.md](spec/especificacion_mvp_grabador_reuniones.md)
 (Spanish); this plan adapts it to this server and to the wider product.
 
@@ -150,6 +151,20 @@ The brief's §7 list, plus:
   search, subtitles and phase 3 translation can use it. Evaluate candidate models on real
   mixed-language meeting audio, comparing a forced language against per-segment detection
   and models tuned on Catalan/Spanish code-switching.
+- **Transcription spike** (started 2026-11-12, `transcription` branch, notes and numbers in
+  [transcription-spike.md](transcription-spike.md)). In-browser Whisper through transformers.js
+  / ONNX Runtime Web; WebGPU first, WASM as fallback. Direction so far, *not yet decided*:
+  - Decode with `<|ca|>` forced. Synthetic tests and the BSC paper agree it keeps Spanish
+    passages in Spanish; detecting one language per 30 s window (Whisper's default) was seen
+    translating Catalan into fluent Spanish, so it is ruled out.
+  - Mark the language per clause ourselves: text-based first, Whisper's `<|ca|>`/`<|es|>`
+    scores on the span's audio where the text is ambiguous.
+  - Candidates for the real-audio round: whisper-large-v3-turbo (564 MB on WebGPU), its
+    Catalan fine-tune duhow/whisper-large-v3-turbo-cat (MIT, same size), and BSC's
+    code-switching whisper-timestamped-cs (Apache-2.0, ≈ 1 GB, slower decoder).
+  - Needs, pending approval: CSP `'wasm-unsafe-eval'` on the transcription worker's script
+    only, model files served from `/models/` on our origin, optionally COOP/COEP for WASM
+    threads.
 
 ### Decided
 

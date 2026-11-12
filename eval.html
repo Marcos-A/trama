@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ca">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex" />
+    <title>Trama · avaluació de transcripció</title>
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="eval">
+    <header>
+      <a class="marca" href="/" aria-label="Trama">
+        <img src="/logo/trama-mark-auto.svg" width="22" height="22" alt="" />
+        <span>Trama</span>
+      </a>
+    </header>
+    <main>
+      <p class="avis-spike">Banc de proves de transcripció (spike). L'àudio no surt del navegador: el model s'executa aquí.</p>
+      <p id="anunci" class="visualment-amagat" aria-live="polite"></p>
+
+      <section class="vista">
+        <h2>1. Àudio</h2>
+        <label class="camp">Gravació (WebM) o fragment d'àudio
+          <input id="audio" type="file" accept="video/webm,audio/*,video/*" />
+        </label>
+        <p id="estat-audio" class="detall"></p>
+      </section>
+
+      <section class="vista">
+        <h2>2. Transcripció de referència</h2>
+        <label class="camp">Fitxer (text, SRT, VTT o JSON) amb <code>[ca]</code> / <code>[es]</code> on canvia la llengua
+          <input id="referencia" type="file" accept=".txt,.srt,.vtt,.json,text/*" />
+        </label>
+        <p id="estat-referencia" class="detall"></p>
+      </section>
+
+      <section class="vista">
+        <h2>3. Model</h2>
+        <div class="fila">
+          <label class="camp">Model <select id="model"></select></label>
+          <label class="camp">Precisió <select id="dtype"></select></label>
+          <label class="camp">Dispositiu
+            <select id="dispositiu">
+              <option value="webgpu">WebGPU</option>
+              <option value="wasm">WASM (CPU)</option>
+            </select>
+          </label>
+        </div>
+        <button id="carrega" class="boto-secundari" type="button">Carrega el model</button>
+        <p id="estat-model" class="detall"></p>
+      </section>
+
+      <section class="vista">
+        <h2>4. Modes</h2>
+        <fieldset class="modes">
+          <label><input type="checkbox" name="mode" value="forced-ca" checked /> Català forçat</label>
+          <label><input type="checkbox" name="mode" value="forced-es" /> Castellà forçat</label>
+          <label><input type="checkbox" name="mode" value="window-lid" checked /> Detecció per finestra (30 s)</label>
+          <label><input type="checkbox" name="mode" value="segment-lid" checked /> Detecció per segment</label>
+        </fieldset>
+        <button id="executa" class="boto-principal" type="button" disabled>Transcriu i puntua</button>
+        <progress id="progres" max="1" value="0" hidden></progress>
+        <p id="estat-execucio" class="detall"></p>
+      </section>
+
+      <section class="vista">
+        <h2>Resultats</h2>
+        <div class="taula-contenidor">
+          <table id="resultats">
+            <thead>
+              <tr>
+                <th>Model</th><th>Mode</th><th>WER</th><th>WER ca</th><th>WER es</th>
+                <th>Etiqueta (model)</th><th>Etiqueta (text)</th><th>Temps</th><th>RTF</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button id="desa" class="boto-secundari" type="button" disabled>Desa els resultats (JSON)</button>
+        <details>
+          <summary>Segments de l'últim mode</summary>
+          <pre id="segments"></pre>
+        </details>
+      </section>
+    </main>
+    <script type="module" src="/src/eval/main.ts"></script>
+  </body>
+</html>

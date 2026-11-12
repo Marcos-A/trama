@@ -40,7 +40,7 @@ export class WebmRepairError extends Error {
 
 // ---------------------------------------------------------------- EBML ids
 
-const ID = {
+export const ID = {
   EBML: 0x1a45dfa3,
   Segment: 0x18538067,
   SeekHead: 0x114d9b74,
@@ -79,13 +79,13 @@ const LEVEL1 = new Set<number>([
 ]);
 
 const TRACK_VIDEO = 1;
-const UNKNOWN = -1;
+export const UNKNOWN = -1;
 const READ_WINDOW = 8 * 1024 * 1024;
 const WRITE_BUFFER = 4 * 1024 * 1024;
 
 // ---------------------------------------------------------------- reading
 
-interface Header {
+export interface Header {
   id: number;
   /** Payload size, or UNKNOWN. */
   size: number;
@@ -94,7 +94,7 @@ interface Header {
 }
 
 /** Windowed reader: sequential header reads and copies without loading the file. */
-class Reader {
+export class Reader {
   private buf: Uint8Array = new Uint8Array(0);
   private start = 0;
 
@@ -151,19 +151,19 @@ class Reader {
   }
 }
 
-function vintLength(first: number): number {
+export function vintLength(first: number): number {
   for (let len = 1; len <= 8; len++) if (first & (0x100 >> len)) return len;
   return 0;
 }
 
-function readUint(b: Uint8Array): number {
+export function readUint(b: Uint8Array): number {
   let v = 0;
   for (const x of b) v = v * 256 + x;
   return v;
 }
 
 /** Track number (vint) and signed 16-bit timecode at the start of a (Simple)Block payload. */
-function blockHead(b: Uint8Array): { track: number; rel: number; flags: number } | null {
+export function blockHead(b: Uint8Array): { track: number; rel: number; flags: number } | null {
   const n = vintLength(b[0] ?? 0);
   if (n === 0 || b.length < n + 3) return null;
   let track = b[0] & (0xff >> n);
