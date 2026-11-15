@@ -21,18 +21,30 @@ export function pickMimeType(): string {
   return MIME_CANDIDATES.find((m) => MediaRecorder.isTypeSupported(m)) ?? '';
 }
 
+const PROCESSING = { ec: 'echoCancellation', ns: 'noiseSuppression', agc: 'autoGainControl' } as const;
+
+/**
+ * The browser's voice processing for the tab audio. Chrome and Edge otherwise apply their
+ * microphone processing to it (and downmix to mono); Teams has already cleaned each voice, and a
+ * second pass can only lose detail the transcription needs, for good. But Edge 157 on macOS
+ * delivers silence with all three off (docs/manual-tests.md, 7f), so which to keep is being
+ * measured: `?audio=default` leaves the browser's defaults, `?audio=none` turns all three off,
+ * `?audio=ec,ns` keeps those on and turns the rest off. Without the parameter: all off.
+ */
+export function audioProcessing(search = location.search): Record<string, boolean> {
+  const param = new URLSearchParams(search).get('audio');
+  if (param === 'default') return {};
+  const keep = new Set((param ?? 'none').split(','));
+  return Object.fromEntries(Object.entries(PROCESSING).map(([key, name]) => [name, keep.has(key)]));
+}
+
 /** Opens the browser picker, steered towards a tab with its audio. Needs a user gesture. */
 export function requestTabStream(): Promise<MediaStream> {
   const options = {
     video: { displaySurface: 'browser' },
     audio: {
       suppressLocalAudioPlayback: false, // the user keeps hearing the meeting
-      // Record the tab's sound untouched. Chrome and Edge otherwise apply their microphone
-      // processing to it (and downmix to mono); Teams has already cleaned each voice, and a
-      // second pass can only lose detail the transcription needs, for good.
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false,
+      ...audioProcessing(),
     },
     selfBrowserSurface: 'exclude',
     monitorTypeSurfaces: 'exclude',
@@ -115,6 +127,7 @@ export class Recording {
     log('recording-started', {
       name: this.name,
       mimeType: rec.mimeType,
+      audioRequested: audioProcessing(),
       tracks: this.stream.getTracks().map((t) => ({ kind: t.kind, label: t.label, settings: t.getSettings() })),
       heapMB: heapMB(),
       storage: await storageMB(),

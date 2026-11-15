@@ -171,3 +171,16 @@ test('repairs interrupted by a closed tab are finished or discarded on the next 
     { name: 'b.webm', size: 'original b'.length },
   ]);
 });
+
+test('?audio= picks which voice processing the tab audio keeps (Edge diagnosis, 7f)', async ({ openApp }) => {
+  const asked = async (query: string) => {
+    const page = await openApp({ query });
+    await record(page, 1500);
+    const audio = await page.evaluate(() => (window as unknown as { __displayMediaOptions: { audio: unknown } }).__displayMediaOptions.audio);
+    await page.close();
+    return audio;
+  };
+  expect(await asked('?audio=default')).toEqual({ suppressLocalAudioPlayback: false });
+  expect(await asked('?audio=ec')).toEqual({ suppressLocalAudioPlayback: false, echoCancellation: true, noiseSuppression: false, autoGainControl: false });
+  expect(await asked('?audio=ns,agc')).toEqual({ suppressLocalAudioPlayback: false, echoCancellation: false, noiseSuppression: true, autoGainControl: true });
+});
