@@ -27,6 +27,9 @@ Edge en macOS, con grabaciones de hasta dos horas y media; no es la versión fin
 | 3 | Editar subtítulos (SRT/VTT), traducirlos al catalán manteniendo los tiempos, mostrar los dos idiomas uno al lado del otro |
 | 4 | Subtítulos incrustados y más formatos de exportación |
 
+Trama funciona solo en el navegador: graba reuniones abiertas en una pestaña de Chrome o Edge.
+No puede grabar la aplicación de escritorio de Teams; en ese caso, entra en la reunión desde el navegador.
+
 El plan completo está en [docs/PLAN.md](docs/PLAN.md) (en inglés); el encargo original de la
 fase 1 está en [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
 

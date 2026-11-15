@@ -47,11 +47,14 @@ Long runs cover several checks at once:
    other tabs, minimise, other apps), 4, 5a (note the size at 60 min from the log) and 5b.
    Check A/V sync near the start, at ~60 min and at the end (a clap or a spoken number on camera).
 2. **Edge, 60 min**: checks 2, 3 again, 4, 5a.
-3. **Short runs (2–5 min) in each browser**: 7a–7e, then 6 (native Teams window) last.
+3. **Short runs (2–5 min) in each browser**: 7a–7e. Check 6 is optional: the desktop app is out of scope.
 
 Download the log after each recording, before reloading the page.
 
 ### Decision gate (PLAN §5.2)
+
+**Decided 2026-11-15: web-only.** The criteria below stay as quality checks for the remaining
+runs; the extension and native options are out of scope (PLAN §7).
 
 - **Web-only** if, in both browsers, 1–5b pass: no audio drop-outs, no `chunk-gap` beyond the
   occasional isolated one, heap flat, A/V sync within ~0.5 s at 120 min, and 7b–7d keep the file.
@@ -70,7 +73,7 @@ Download the log after each recording, before reloading the page.
 | 4 | Meeting stays audible while recording | You hear the meeting the whole time |
 | 5a | 60-minute run | File plays to the end; heap flat; note file size and repair time; seek to the middle and the end, in the page and in the saved file (VLC/QuickTime-compatible player) |
 | 5b | 120-minute run | Same; note file size and A/V sync at the end |
-| 6 | Pick the native Teams window instead of a tab (experiment) | Record what happens to audio; not expected to work |
+| 6 | *(Optional; out of scope since 2026-11-15)* Pick the native Teams window instead of a tab | Record what happens to audio; not expected to work |
 | 7a | Cancel the picker / deny permission | Clear message, back to start |
 | 7b | Stop sharing from Chrome's bar mid-recording | Recording stops, file kept up to that point |
 | 7c | Close the Trama tab mid-recording, reopen it | Recording listed under "Còpies al navegador", recovers (repair drops the cut-off tail) and plays to the cut with a duration |

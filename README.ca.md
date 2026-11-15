@@ -27,6 +27,9 @@ macOS, amb gravacions de fins a dues hores i mitja; no és la versió final.
 | 3 | Editar subtítols (SRT/VTT), traduir-los al català mantenint els temps, mostrar les dues llengües una al costat de l'altra |
 | 4 | Subtítols incrustats i més formats d'exportació |
 
+Trama funciona només al navegador: grava reunions obertes en una pestanya de Chrome o Edge.
+No pot gravar l'aplicació d'escriptori de Teams; en aquest cas, entra a la reunió des del navegador.
+
 El pla complet és a [docs/PLAN.md](docs/PLAN.md) (en anglès); l'encàrrec original de la fase 1
 (en castellà) és a [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
 

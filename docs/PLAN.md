@@ -3,9 +3,10 @@
 *Trama* (Catalan/Spanish): the weft of a fabric, and the plot of a story. The app weaves
 tracks together: video, audio, subtitles, translations.
 
-Status: scaffold live on both URLs; recording spike (§5.2) on the `spike` branch, under
-manual testing; step 3 started (WebM repair, Playwright suite); WebM→MP4 conversion built early
-on the `mp4-convert` branch (§2, §7). The original brief for phase 1 is
+Status (2026-11-15): recorder prototype live on both URLs (`main`): tab recording to OPFS,
+WebM repair and recovery, WebM→MP4 conversion in the browser (§2, §7), raw tab audio; Playwright
+suite. Decision gate (§5.2) taken: **web-only** (§7). Remaining spike checks (Chrome long run,
+7b–7e) in [manual-tests.md](manual-tests.md), then steps 4–5. The original brief for phase 1 is
 [spec/especificacion_mvp_grabador_reuniones.md](spec/especificacion_mvp_grabador_reuniones.md)
 (Spanish); this plan adapts it to this server and to the wider product.
 
@@ -16,7 +17,11 @@ on the `mp4-convert` branch (§2, §7). The original brief for phase 1 is
 | **1 (urgent)** | Record a Teams meeting open in a Chrome/Edge tab: video + tab audio, no mic/camera, saved locally | Browser only |
 | 2 | Import existing recordings (WebM, MP4); transcription (Catalan first, Spanish a close second) with timestamps; search and jump to the moment in the video | Browser first; server only if quality requires it |
 | 3 | Subtitle editor (SRT/VTT); translation into Catalan keeping timings; bilingual view; export | Browser + possibly server |
-| 4 | Burned-in subtitles; more formats (WebM→MP4 is already done, see §2 and §7); downloading/streaming features, possible native-app capture via a local component | Mixed |
+| 4 | Burned-in subtitles; more formats (WebM→MP4 is already done, see §2 and §7); downloading/streaming features | Mixed |
+
+**Scope: web-only** (decided 2026-11-15, §7). Trama records meetings open in a browser tab;
+the Teams desktop app is out of scope, as is any extension or native component, until a
+future need justifies a different approach.
 
 Principle carried from the brief: **recording never depends on the server.** Later phases may
 add server-side processing, but each one needs its own consent and data-handling design
@@ -145,6 +150,7 @@ resources.
    the tab mid-recording (recovery), and native Teams window as an experiment.
    **Decision gate:** web-only if reliable; otherwise a Chrome extension (`tabCapture`) as
    capturer with the web app as UI; ScreenCaptureKit only if native Teams audio is required.
+   **Decided 2026-11-15: web-only** (§7).
 3. **Harden** — error handling (denied permission, no audio, share ended, low space,
    unexpected close), WebM repair, recovery UI, Playwright suite.
 4. **Polish UI** — Catalan UI, recording indicator, stopwatch, audio status, player, editable
@@ -175,6 +181,14 @@ The brief's §7 list, plus:
   and models tuned on Catalan/Spanish code-switching.
 
 ### Decided
+
+- **Web-only** (decided 2026-11-15, at the §5.2 gate). Tab capture records video and tab audio
+  reliably in Chrome and Edge 157 on macOS: 2 h 29 min without memory growth or drift, the tab
+  in the background, recovery after a closed tab, MP4 conversion (docs/manual-tests.md). Capture
+  from the Teams desktop app is out of reach from a browser (it would need ScreenCaptureKit in a
+  native component), and nothing seen so far calls for a `tabCapture` extension, so both are
+  left out of scope. Consequence for users: the meeting has to be open in a Chrome or Edge tab,
+  and it is that tab that gets shared. Revisit only if the desktop app becomes a requirement.
 
 - **Phase 1 records WebM only** (decided 2026-11-12). Stability comes first: VP8/VP9 + Opus
   WebM is MediaRecorder's most tested path in Chrome and Edge, and the OPFS writer, recovery

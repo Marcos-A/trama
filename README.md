@@ -27,6 +27,9 @@ two and a half hours; it is not the final version.
 | 3 | Edit subtitles (SRT/VTT), translate them into Catalan keeping the timings, show both languages side by side |
 | 4 | Burned-in subtitles and more export formats |
 
+Trama is web-only: it records meetings open in a Chrome or Edge tab. The Teams desktop app
+cannot be recorded; join the meeting in the browser instead.
+
 The full plan is in [docs/PLAN.md](docs/PLAN.md); the original phase 1 brief (in Spanish) is in
 [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
 
