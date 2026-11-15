@@ -85,7 +85,7 @@ Download the log after each recording, before reloading the page.
 
 | Date | Browser + version | macOS | Check | Result | Notes (file size, heap, gaps, sync) |
 |---|---|---|---|---|---|
-| | | | | | |
+| 2026-11-15 | Chrome 157 | ? | 8a (smoke, 23 s only) | Pass, pending QuickTime check | Save dialog used (`download: false`), `audioCodec` aac; WebM 0.67 MB → MP4 1.29 MB in 1,266 ms (~18× real time); 2558×2426; heap 4 MB. `mp4.durationS` 22.768 s against repaired WebM 23.164 s (field is the input's duration as Mediabunny computes it; check the MP4's real length in QuickTime). Tab audio mono with voice processing on (`echoCancellation`/`noiseSuppression`/`autoGainControl` true). |
 
 ## Known spike limitations
 
