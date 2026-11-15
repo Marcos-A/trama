@@ -13,8 +13,10 @@ through it. Trama is a browser app that casts that mesh over video: it catches a
 happens (video and tab audio), then weaves in transcripts, subtitles and translations so that
 nothing said slips through and the plot can always be followed.
 
-**Status:** early development. The site shows a placeholder page; the first feature, recording
-a meeting, is being built.
+**Status:** early development. The site runs a test prototype of the first feature, recording a
+meeting: it records a tab with its audio, repairs the file so it can be seeked, and saves it as
+WebM or MP4. It has been checked by hand in Chrome and Edge on macOS, with recordings of up to
+two and a half hours; it is not the final version.
 
 ## What it will do
 
@@ -79,6 +81,6 @@ public/          static files copied as-is
 deploy/          nginx config and security headers
 scripts/         deploy, build-info, test and log-summary scripts
 tests/           Playwright tests: unit/ (Node), e2e/ (headless Chromium), fixtures/
-docs/            plan and original brief
+docs/            plan, original brief and manual test results
 docs/brand/      brand pack: logo masters, colour and usage guide
 ```

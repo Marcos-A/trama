@@ -13,8 +13,10 @@ que tiende esa malla sobre el vídeo: atrapa una reunión mientras sucede (víde
 pestaña) y le entreteje transcripciones, subtítulos y traducciones para que no se escape nada de
 lo que se dice y nunca se pierda el hilo.
 
-**Estado:** en desarrollo inicial. El sitio muestra una página provisional; se está
-construyendo la primera función, la grabación de reuniones.
+**Estado:** en desarrollo inicial. El sitio usa un prototipo de pruebas de la primera
+función, la grabación de reuniones: graba una pestaña con su audio, repara el archivo para que
+se pueda avanzar y retroceder, y lo guarda en WebM o MP4. Se ha probado a mano con Chrome y
+Edge en macOS, con grabaciones de hasta dos horas y media; no es la versión final.
 
 ## Qué hará
 
@@ -82,6 +84,6 @@ public/          ficheros estáticos que se copian tal cual
 deploy/          configuración de nginx y cabeceras de seguridad
 scripts/         scripts de despliegue, de información de compilación, de pruebas y de resumen de registros
 tests/           pruebas de Playwright: unit/ (Node), e2e/ (Chromium sin interfaz), fixtures/
-docs/            plan y encargo original
+docs/            plan, encargo original y resultados de las pruebas manuales
 docs/brand/      paquete de marca: originales del logotipo, colores y guía de uso
 ```

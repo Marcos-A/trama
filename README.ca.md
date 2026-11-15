@@ -13,8 +13,10 @@ malla sobre el vídeo: atrapa una reunió mentre té lloc (vídeo i àudio de la
 entreteixeix transcripcions, subtítols i traduccions perquè no s'escapi res del que s'hi diu i
 no se'n perdi mai el fil.
 
-**Estat:** en desenvolupament inicial. El lloc mostra una pàgina provisional; s'està
-construint la primera funció, la gravació de reunions.
+**Estat:** en desenvolupament inicial. El lloc fa servir un prototip de proves de la primera
+funció, la gravació de reunions: grava una pestanya amb el seu àudio, repara el fitxer perquè
+s'hi pugui avançar i retrocedir, i el desa en WebM o MP4. S'ha provat a mà amb Chrome i Edge a
+macOS, amb gravacions de fins a dues hores i mitja; no és la versió final.
 
 ## Què farà
 
@@ -82,6 +84,6 @@ public/          fitxers estàtics que es copien tal qual
 deploy/          configuració de nginx i capçaleres de seguretat
 scripts/         scripts de desplegament, d'informació de compilació, de proves i de resum de registres
 tests/           proves de Playwright: unit/ (Node), e2e/ (Chromium sense interfície), fixtures/
-docs/            pla i encàrrec original
+docs/            pla, encàrrec original i resultats de les proves manuals
 docs/brand/      paquet de marca: originals del logotip, colors i guia d'ús
 ```
