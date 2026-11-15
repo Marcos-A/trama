@@ -58,6 +58,9 @@ export const test = base.extend<{ openApp: (opts?: CaptureOptions & { query?: st
       page.on('dialog', (d) => void d.accept());
       await page.addInitScript(fakeCapture, { audio, width, height });
       await page.goto('/' + query);
+      // The startup scan of OPFS (tidying repairs, listing leftovers) must finish before a test
+      // writes files there itself, or the scan meets half-written files.
+      await expect(page.locator('#registre')).toContainText(' leftovers ');
       return page;
     });
     expect(problems, 'CSP violations, page errors or requests to other origins').toEqual([]);

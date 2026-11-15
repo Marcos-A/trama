@@ -43,8 +43,12 @@ async function tidyRepairs(d: FileSystemDirectoryHandle, held: Set<string>): Pro
     if (!tmpName.startsWith(REPAIR_PREFIX)) continue;
     const name = tmpName.slice(REPAIR_PREFIX.length);
     if (held.has(name)) continue; // a tab is repairing it right now
-    if (names.has(name)) await d.removeEntry(tmpName);
-    else await ((await d.getFileHandle(tmpName)) as FileSystemFileHandle & { move(n: string): Promise<void> }).move(name);
+    try {
+      if (names.has(name)) await d.removeEntry(tmpName);
+      else await ((await d.getFileHandle(tmpName)) as FileSystemFileHandle & { move(n: string): Promise<void> }).move(name);
+    } catch {
+      // Gone or busy meanwhile (another tab tidied it, or it is still open): the next load retries.
+    }
   }
 }
 
@@ -59,7 +63,9 @@ export async function leftoverRecordings(): Promise<File[]> {
   const files: File[] = [];
   for await (const [name, handle] of d.entries()) {
     if (handle.kind !== 'file' || held.has(name) || name.startsWith(REPAIR_PREFIX)) continue;
-    files.push(await (handle as FileSystemFileHandle).getFile());
+    // A file deleted from another tab while listing is skipped, not an error for the whole list.
+    const file = await (handle as FileSystemFileHandle).getFile().catch(() => null);
+    if (file) files.push(file);
   }
   return files.sort((a, b) => b.lastModified - a.lastModified);
 }
