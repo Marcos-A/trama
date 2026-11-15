@@ -25,7 +25,15 @@ export function pickMimeType(): string {
 export function requestTabStream(): Promise<MediaStream> {
   const options = {
     video: { displaySurface: 'browser' },
-    audio: { suppressLocalAudioPlayback: false }, // the user keeps hearing the meeting
+    audio: {
+      suppressLocalAudioPlayback: false, // the user keeps hearing the meeting
+      // Record the tab's sound untouched. Chrome and Edge otherwise apply their microphone
+      // processing to it (and downmix to mono); Teams has already cleaned each voice, and a
+      // second pass can only lose detail the transcription needs, for good.
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    },
     selfBrowserSurface: 'exclude',
     monitorTypeSurfaces: 'exclude',
     surfaceSwitching: 'include',

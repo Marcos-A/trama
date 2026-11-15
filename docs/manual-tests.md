@@ -76,6 +76,7 @@ Download the log after each recording, before reloading the page.
 | 7c | Close the Trama tab mid-recording, reopen it | Recording listed under "Còpies al navegador", recovers (repair drops the cut-off tail) and plays to the cut with a duration |
 | 7d | Low space (`?quota=50`) | Stops with the space message, file kept |
 | 7e | Untick "share tab audio" | "Sense so" warning shown during recording |
+| 7f | Any recording with a Teams meeting (Chrome, then Edge) | In `recording-started`, the audio track shows `echoCancellation`, `noiseSuppression` and `autoGainControl` `false` (note `channelCount`); the saved file sounds normal, with no change in level or quality against earlier recordings |
 | 8a | **Desa en MP4** (Chrome), after a ≥ 5-min recording | Save dialog first, then progress; the saved `.mp4` plays in QuickTime with sound and the same duration, seeks; log `mp4.audioCodec` is `aac`; note `mp4.ms` and the size against the WebM |
 | 8b | Same in Edge | Same |
 | 8c | **Desa en MP4** on the 60-min recording, tab in the background meanwhile | Completes; note `mp4.ms`, heap flat; A/V sync at the end matches the WebM |

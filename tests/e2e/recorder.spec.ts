@@ -17,6 +17,9 @@ test('record, repair, play with a duration, seek, export and delete', async ({ o
   await expect(page.locator('#mida')).toContainText('MB desats');
   await expect(page.locator('#estat-so')).toHaveText('Amb so');
   expect(await page.title()).toMatch(/^●/);
+  // Tab audio is asked for untouched: no microphone processing, and the user still hears it.
+  const asked = await page.evaluate(() => (window as unknown as { __displayMediaOptions: { audio: unknown } }).__displayMediaOptions.audio);
+  expect(asked).toEqual({ suppressLocalAudioPlayback: false, echoCancellation: false, noiseSuppression: false, autoGainControl: false });
   await stopAndWaitSaved(page);
   expect(await page.title()).toBe('Trama');
 

@@ -12,7 +12,8 @@ export interface CaptureOptions {
 
 /** Runs in the page: canvas video (numbered frames) + oscillator audio. */
 function fakeCapture({ audio, width = 640, height = 360 }: CaptureOptions): void {
-  navigator.mediaDevices.getDisplayMedia = async () => {
+  navigator.mediaDevices.getDisplayMedia = async (options?: DisplayMediaStreamOptions) => {
+    (window as unknown as { __displayMediaOptions: unknown }).__displayMediaOptions = options;
     const c = document.createElement('canvas');
     c.width = width;
     c.height = height;
