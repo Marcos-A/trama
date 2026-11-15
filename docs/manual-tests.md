@@ -79,7 +79,7 @@ Download the log after each recording, before reloading the page.
 | 8a | **Desa en MP4** (Chrome), after a ≥ 5-min recording | Save dialog first, then progress; the saved `.mp4` plays in QuickTime with sound and the same duration, seeks; log `mp4.audioCodec` is `aac`; note `mp4.ms` and the size against the WebM |
 | 8b | Same in Edge | Same |
 | 8c | **Desa en MP4** on the 60-min recording, tab in the background meanwhile | Completes; note `mp4.ms`, heap flat; A/V sync at the end matches the WebM |
-| 8d | Cancel·la midway through a conversion | Back to the recording with "Conversió cancel·lada"; nothing left at the chosen location (an existing file chosen to overwrite keeps its old contents) |
+| 8d | Cancel·la midway through a conversion | Back to the recording with "Conversió cancel·lada"; nothing left at the chosen location. An existing file chosen to replace is gone too: Chrome and Edge empty it as the save dialog closes, before the conversion starts |
 
 ## Results
 
@@ -87,6 +87,7 @@ Download the log after each recording, before reloading the page.
 |---|---|---|---|---|---|
 | 2026-11-15 | Chrome 157 | Tahoe 26.7.3 | 8a (smoke, 23 s only) | Pass, pending QuickTime check | Save dialog used (`download: false`), `audioCodec` aac; WebM 0.67 MB → MP4 1.29 MB in 1,266 ms (~18× real time); 2558×2426; heap 4 MB. `mp4.durationS` 22.768 s against repaired WebM 23.164 s (field is the input's duration as Mediabunny computes it; check the MP4's real length in QuickTime). Tab audio mono with voice processing on (`echoCancellation`/`noiseSuppression`/`autoGainControl` true). |
 | 2026-11-15 | Chrome 157 | Tahoe 26.7.3 | 8a | Pass | 5 min 16 s, mostly static tab. Save dialog used, `audioCodec` aac; WebM 5.98 MB → MP4 12.58 MB (2.1×) in 3,245 ms (~97× real time, few changed frames); 3036×2880; heap 4 MB throughout, `maxWriteMs` ≤ 8. In QuickTime: plays with sound, seeks, same length as the WebM (`mp4.durationS` 315.675 s against repaired 315.735 s). Frames 3036×2880 though the track reported 2558×2426 at start (same aspect ratio). |
+| 2026-11-15 | Edge 157 | Tahoe 26.7.3 | 8d | Pass | 5 min 17 s, portrait tab 1608×2684 with motion: WebM 31.2 MB, repair 73 ms, heap 6–7 MB. Cancelled 7.5 s into the conversion: "Conversió cancel·lada" shown, back to the recording, nothing at a new location. Replacing an existing file: the browser emptied it as soon as the dialog closed, and after the cancel it was gone (expected result revised). |
 
 ## Known spike limitations
 
@@ -97,3 +98,5 @@ Download the log after each recording, before reloading the page.
   must stay open. Where the browser has no AAC encoder, the MP4 keeps Opus audio (VLC and
   browsers play it; QuickTime may not). The MP4 has its index at the end, which only matters
   when streaming it from a web server.
+- Choosing to replace an existing file in the save dialog empties it straight away (Chrome and
+  Edge do this, not the app), so cancelling or failing the export afterwards loses the old file.

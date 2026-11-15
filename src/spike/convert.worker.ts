@@ -36,8 +36,9 @@ async function convert(name: string, dest: RemovableHandle): Promise<void> {
     reply({ t: 'done', ...result, inputBytes: file.size, outputBytes, ms: Math.round(performance.now() - t0) });
   } catch (err) {
     await out.abort().catch(() => {});
-    // The save dialog creates an empty file up front; don't leave it behind. A file that was
-    // there before (overwrite) keeps its old contents, since nothing was committed.
+    // The save dialog leaves an empty file at the chosen place: a new one, or, when the user
+    // chose to replace an existing file, that file truncated by the browser as the dialog
+    // closes (its old contents are already gone). Don't leave the empty file behind.
     if ((await dest.getFile().catch(() => null))?.size === 0) await dest.remove?.().catch(() => {});
     throw err;
   }
