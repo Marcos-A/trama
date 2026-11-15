@@ -122,6 +122,28 @@ test('simulated full storage (?quota=) stops the recording and keeps the file', 
   expect(files[0].size).toBeGreaterThan(0);
 });
 
+test('without ?debug: no log panel, and ?quota is ignored', async ({ openApp }) => {
+  const page = await openApp({ query: '?quota=0.2', debug: false });
+  await expect(page.locator('#panell-registre')).toBeHidden();
+  await record(page, 3000); // well past 0.2 MB of synthetic video
+  await expect(page.locator('#vista-gravant')).toBeVisible();
+  await stopAndWaitSaved(page);
+  expect(await logEvents(page, 'simulated-quota-reached')).toEqual([]);
+});
+
+test('with ?debug the log panel is shown', async ({ openApp }) => {
+  const page = await openApp();
+  await expect(page.locator('#panell-registre')).toBeVisible();
+});
+
+test('browsers other than desktop Chromium are told to use Chrome or Edge', async ({ page }) => {
+  // Firefox and Safari have no User-Agent Client Hints.
+  await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'userAgentData', { get: () => undefined }));
+  await page.goto('/');
+  await expect(page.locator('#grava')).toBeDisabled();
+  await expect(page.locator('#missatge')).toContainText('Chrome o Edge');
+});
+
 test('cancelling the picker returns to the start with a message', async ({ openApp }) => {
   const page = await openApp();
   await page.evaluate(() => {

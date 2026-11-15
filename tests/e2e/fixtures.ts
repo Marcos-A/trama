@@ -40,12 +40,19 @@ function fakeCapture({ audio, width = 640, height = 360 }: CaptureOptions): void
   };
 }
 
-export const test = base.extend<{ openApp: (opts?: CaptureOptions & { query?: string }) => Promise<Page> }>({
+export interface OpenOptions extends CaptureOptions {
+  /** Extra query string, e.g. `?quota=0.2`. */
+  query?: string;
+  /** Open with `?debug` (log panel, `?quota`). Default true. */
+  debug?: boolean;
+}
+
+export const test = base.extend<{ openApp: (opts?: OpenOptions) => Promise<Page> }>({
   openApp: async ({ context, baseURL }, use) => {
     const problems: string[] = [];
     const origin = new URL(baseURL!).origin;
     const pages: Page[] = [];
-    await use(async ({ audio = true, width, height, query = '' } = {}) => {
+    await use(async ({ audio = true, width, height, query = '', debug = true } = {}) => {
       const page = await context.newPage();
       pages.push(page);
       page.on('console', (m) => {
@@ -58,7 +65,9 @@ export const test = base.extend<{ openApp: (opts?: CaptureOptions & { query?: st
       });
       page.on('dialog', (d) => void d.accept());
       await page.addInitScript(fakeCapture, { audio, width, height });
-      await page.goto('/' + query);
+      const params = new URLSearchParams(query);
+      if (debug) params.set('debug', '');
+      await page.goto('/?' + params.toString());
       // The startup scan of OPFS (tidying repairs, listing leftovers) must finish before a test
       // writes files there itself, or the scan meets half-written files.
       await expect(page.locator('#registre')).toContainText(' leftovers ');

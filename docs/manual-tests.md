@@ -6,7 +6,9 @@ real audio or long runs is recorded here.
 
 ## How to run a spike session
 
-1. Open the spike build (preview URL, or `npm run dev` forwarded to `http://localhost:5173`).
+1. Open the build with `?debug` (preview URL, or `npm run dev` forwarded to
+   `http://localhost:5173`): for example `https://trama-preview.marcos-a.com/?debug`. Without it
+   the **Registre de proves** panel is hidden.
 2. Join or start a Teams meeting in another tab of the same browser, with someone sharing
    video and talking (a second device works).
 3. In Trama: **Grava una pestanya** → pick the Teams tab → keep "share tab audio" ticked.
@@ -20,7 +22,8 @@ real audio or long runs is recorded here.
 Use a normal window, not incognito/InPrivate: Chrome gives incognito pages a small storage
 quota, so a long recording would stop early with the "out of space" message.
 
-Simulating low space: open the page with `?quota=<MB>` (for example `?quota=50`); the
+Simulating low space: open the page with `?debug&quota=<MB>` (for example `?debug&quota=50`;
+`?quota` is ignored without `?debug`); the
 recording stops as if the browser ran out of space once the file passes that size.
 
 Reading the log: `chunk-gap` means the recorder delivered nothing for over 2.5 s (throttling
@@ -77,9 +80,10 @@ runs; the extension and native options are out of scope (PLAN §7).
 | 7a | Cancel the picker / deny permission | Clear message, back to start |
 | 7b | Stop sharing from Chrome's bar mid-recording | Recording stops, file kept up to that point |
 | 7c | Close the Trama tab mid-recording, reopen it | Recording listed under "Còpies al navegador", recovers (repair drops the cut-off tail) and plays to the cut with a duration |
-| 7d | Low space (`?quota=50`) | Stops with the space message, file kept |
+| 7d | Low space (`?debug&quota=50`) | Stops with the space message, file kept |
 | 7e | Untick "share tab audio" | "Sense so" warning shown during recording |
 | 7f | Any recording with a Teams meeting (Chrome, then Edge) | In `recording-started`, the audio track shows `echoCancellation`, `noiseSuppression` and `autoGainControl` `false` (note `channelCount`); the saved file sounds normal, with no change in level or quality against earlier recordings |
+| 7g | Open Trama in Safari (and Firefox if installed) | **Grava una pestanya** disabled, message asks for Chrome or Edge on desktop; Brave (Chromium) is not blocked |
 | 8a | **Desa en MP4** (Chrome), after a ≥ 5-min recording | Save dialog first, then progress; the saved `.mp4` plays in QuickTime with sound and the same duration, seeks; log `mp4.audioCodec` is `aac`; note `mp4.ms` and the size against the WebM |
 | 8b | Same in Edge | Same |
 | 8c | **Desa en MP4** on the 60-min recording, tab in the background meanwhile | Completes; note `mp4.ms`, heap flat; A/V sync at the end matches the WebM |

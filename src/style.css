@@ -55,13 +55,6 @@ main {
   white-space: nowrap;
 }
 
-.avis-spike {
-  margin: 0;
-  font-size: var(--mida-detall);
-  color: var(--fum);
-  text-align: center;
-}
-
 .vista {
   display: flex;
   flex-direction: column;

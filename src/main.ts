@@ -57,8 +57,12 @@ let conversion: AbortController | null = null;
 /** A save or an MP4 conversion is running (see setBusy). */
 let busy = false;
 
-// `?quota=<MB>` simulates running out of space (checklist item 7) without filling the disk.
-const quotaParam = new URLSearchParams(location.search).get('quota');
+// `?debug` shows the diagnostics log for manual tests (docs/manual-tests.md). Events are logged
+// either way (the browser tests read them), but the panel stays hidden without it.
+const params = new URLSearchParams(location.search);
+const debug = params.has('debug');
+// `?debug&quota=<MB>` simulates running out of space (checklist item 7d) without filling the disk.
+const quotaParam = debug ? params.get('quota') : null;
 const quotaLimitBytes = quotaParam ? Number(quotaParam) * 1e6 : undefined;
 
 function setState(s: State): void {
@@ -584,7 +588,18 @@ async function showBuild(): Promise<void> {
   }
 }
 
+/**
+ * Tab audio capture exists only in desktop Chromium (Chrome, Edge and other Chromium browsers).
+ * User-Agent Client Hints exist only there too, and only in secure contexts, which screen
+ * capture needs anyway.
+ */
+function isDesktopChromium(): boolean {
+  const uaData = (navigator as Navigator & { userAgentData?: { brands: { brand: string }[]; mobile: boolean } }).userAgentData;
+  return !!uaData && !uaData.mobile && uaData.brands.some((b) => b.brand === 'Chromium');
+}
+
 async function init(): Promise<void> {
+  el('panell-registre').hidden = !debug;
   log('page-loaded', { url: location.pathname + location.search, simulatedQuotaMB: quotaParam ?? undefined });
   setState('idle');
   const unsupported = [
@@ -597,6 +612,14 @@ async function init(): Promise<void> {
     log('unsupported', unsupported);
     btnGrava.disabled = true;
     showMessage(`Aquest navegador no pot gravar pestanyes (falta: ${unsupported.join(', ')}). Fes servir Chrome o Edge d'escriptori.`);
+    return;
+  }
+  if (!isDesktopChromium()) {
+    // Firefox and Safari pass the checks above but cannot share a tab's audio, so a meeting
+    // would be recorded without sound; say so before the picker rather than after it.
+    log('unsupported', 'not desktop Chromium');
+    btnGrava.disabled = true;
+    showMessage("Aquest navegador no pot gravar el so d'una pestanya. Obre Trama i la reunió amb Chrome o Edge d'escriptori.");
     return;
   }
   const storage = await storageMB();
