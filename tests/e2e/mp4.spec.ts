@@ -141,7 +141,9 @@ test('cancelling the MP4 conversion leaves no file and returns to the recording'
   await page.click('#cancella-mp4');
   await expect(page.locator('#missatge')).toContainText('Conversió cancel·lada', { timeout: 30_000 });
   await expect(page.locator('#vista-desat')).toBeVisible();
-  expect(await logEvents(page, 'mp4-cancelled')).toHaveLength(1);
+  const [cancelled] = (await logEvents(page, 'mp4-cancelled')) as { progress: number; elapsedS: number }[];
+  expect(cancelled.progress).toBeGreaterThan(0);
+  expect((await logEvents(page, 'mp4-sample')).length).toBeGreaterThanOrEqual(1); // one at the first progress
   expect(await pickedFiles(page)).toEqual([]); // the empty file the dialog created is removed too
 
   // Converting again afterwards works.
@@ -160,4 +162,30 @@ test('a recording without sound converts to a video-only MP4', async ({ openApp 
   await expect(page.locator('#missatge')).toHaveText('Vídeo desat en MP4. Ja pots esborrar la còpia del navegador.', { timeout: 60_000 });
   const [log] = (await logEvents(page, 'mp4')) as Mp4Log[];
   expect(log.audioCodec).toBeNull();
+});
+
+test('while the WebM is being saved, MP4 and the other actions wait', async ({ openApp }) => {
+  const page = await openApp();
+  await record(page, 3000);
+  await stopAndWaitSaved(page);
+  // A save dialog that stays open until the test closes it, standing in for a long write.
+  await page.evaluate(() => {
+    const w = window as unknown as { showSaveFilePicker: unknown; closeDialog: () => void };
+    w.showSaveFilePicker = ({ suggestedName }: { suggestedName: string }) =>
+      new Promise((resolve) => {
+        w.closeDialog = async () => {
+          const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle('picked', { create: true });
+          resolve(await dir.getFileHandle(suggestedName, { create: true }));
+        };
+      });
+  });
+  await page.click('#desa');
+  await expect(page.locator('#desa')).toHaveText('Desant…');
+  for (const id of ['#desa', '#desa-mp4', '#nova', '#esborra']) await expect(page.locator(id)).toBeDisabled();
+
+  await page.evaluate(() => (window as unknown as { closeDialog: () => void }).closeDialog());
+  await expect(page.locator('#missatge')).toHaveText('Vídeo desat. Ja pots esborrar la còpia del navegador.');
+  await expect(page.locator('#desa')).toHaveText('Desa el vídeo');
+  for (const id of ['#desa', '#desa-mp4', '#nova', '#esborra']) await expect(page.locator(id)).toBeEnabled();
+  expect(await pickedFiles(page)).toEqual([{ name: expect.stringMatching(/\.webm$/), size: expect.any(Number) }]);
 });

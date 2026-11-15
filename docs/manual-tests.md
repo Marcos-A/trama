@@ -73,7 +73,7 @@ Download the log after each recording, before reloading the page.
 | 6 | Pick the native Teams window instead of a tab (experiment) | Record what happens to audio; not expected to work |
 | 7a | Cancel the picker / deny permission | Clear message, back to start |
 | 7b | Stop sharing from Chrome's bar mid-recording | Recording stops, file kept up to that point |
-| 7c | Close the Trama tab mid-recording, reopen it | Recording listed under "Gravacions sense desar", recovers (repair drops the cut-off tail) and plays to the cut with a duration |
+| 7c | Close the Trama tab mid-recording, reopen it | Recording listed under "Còpies al navegador", recovers (repair drops the cut-off tail) and plays to the cut with a duration |
 | 7d | Low space (`?quota=50`) | Stops with the space message, file kept |
 | 7e | Untick "share tab audio" | "Sense so" warning shown during recording |
 | 8a | **Desa en MP4** (Chrome), after a ≥ 5-min recording | Save dialog first, then progress; the saved `.mp4` plays in QuickTime with sound and the same duration, seeks; log `mp4.audioCodec` is `aac`; note `mp4.ms` and the size against the WebM |

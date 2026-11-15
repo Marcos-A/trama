@@ -1,6 +1,6 @@
 import './tokens.css';
 import './style.css';
-import { log, logAsBlob, onLog, storageMB } from './spike/log.ts';
+import { heapMB, log, logAsBlob, onLog, storageMB } from './spike/log.ts';
 import {
   clearExports,
   convertRecordingToMp4,
@@ -54,6 +54,8 @@ let recording: Recording | null = null;
 let current: { name: string; file: File } | null = null;
 let playerUrl: string | null = null;
 let conversion: AbortController | null = null;
+/** A save or an MP4 conversion is running (see setBusy). */
+let busy = false;
 
 // `?quota=<MB>` simulates running out of space (checklist item 7) without filling the disk.
 const quotaParam = new URLSearchParams(location.search).get('quota');
@@ -71,6 +73,17 @@ function setState(s: State): void {
   btnAtura.textContent = s === 'stopping' ? 'Aturant…' : 'Atura';
   if (s !== 'recording' && s !== 'stopping') setRecordingTab(false);
   log('state', s);
+}
+
+/**
+ * While a save or a conversion runs, the actions that would start another one or swap the
+ * recording under it are disabled: a 3 GB WebM takes seconds to write, and its "saved"
+ * message must not land on top of a conversion started meanwhile.
+ */
+function setBusy(on: boolean): void {
+  busy = on;
+  for (const b of [btnDesa, btnDesaMp4, btnNova, btnEsborra]) b.disabled = on;
+  for (const b of llistaPendents.querySelectorAll<HTMLButtonElement>('button[data-recupera]')) b.disabled = on || recording !== null;
 }
 
 function announce(text: string): void {
@@ -352,9 +365,11 @@ function exportName(ext: 'webm' | 'mp4'): string {
 }
 
 btnDesa.addEventListener('click', async () => {
-  if (!current) return;
+  if (!current || busy) return;
   const name = exportName('webm');
   const t0 = performance.now();
+  setBusy(true);
+  btnDesa.textContent = 'Desant…';
   try {
     const result = await exportRecording(current.file, name);
     log('export', { result, name, size: current.file.size, ms: Math.round(performance.now() - t0) });
@@ -365,6 +380,9 @@ btnDesa.addEventListener('click', async () => {
     const e = err as DOMException;
     log('export-failed', { name: e.name, message: e.message });
     showMessage(`No s'ha pogut desar el vídeo (${e.name}). La còpia del navegador es manté.`);
+  } finally {
+    setBusy(false);
+    btnDesa.textContent = 'Desa el vídeo';
   }
 });
 
@@ -373,9 +391,19 @@ btnDesa.addEventListener('click', async () => {
 // (while the click still counts as a user gesture) and the MP4 is written straight there;
 // without it, the MP4 is built in OPFS and offered as a download.
 
+const MP4_SAMPLE_MS = 30_000;
+
 btnDesaMp4.addEventListener('click', async () => {
-  if (!current) return;
-  const { name: recName } = current;
+  if (!current || busy) return;
+  setBusy(true);
+  try {
+    await saveAsMp4(current.name);
+  } finally {
+    setBusy(false);
+  }
+});
+
+async function saveAsMp4(recName: string): Promise<void> {
   const name = exportName('mp4');
   let dest: FileSystemFileHandle;
   let download = false;
@@ -397,10 +425,25 @@ btnDesaMp4.addEventListener('click', async () => {
   conversion = new AbortController();
   setState('converting');
   announce('Convertint a MP4.');
+  // Samples every 30 s, driven by the worker's progress messages (not throttled in a
+  // background tab). heapMB is this page; workerHeapMB the converter, where Chrome reports it.
+  // Decoded frames live outside both heaps.
+  const t0 = performance.now();
+  let lastSample = -Infinity;
+  let progress = 0;
+  const elapsedS = () => Math.round((performance.now() - t0) / 1000);
+  const onProgress = (fraction: number, workerHeapMB?: number) => {
+    progresMp4.value = progress = fraction;
+    if (performance.now() - lastSample < MP4_SAMPLE_MS) return;
+    lastSample = performance.now();
+    void storageMB().then((storage) =>
+      log('mp4-sample', { elapsedS: elapsedS(), progress: Math.round(fraction * 1000) / 1000, heapMB: heapMB(), workerHeapMB, storage, hidden: document.hidden }),
+    );
+  };
   try {
-    const out = await convertRecordingToMp4(recName, dest, (f) => (progresMp4.value = f), conversion.signal);
+    const out = await convertRecordingToMp4(recName, dest, onProgress, conversion.signal);
     if (!out) {
-      log('mp4-cancelled', { name });
+      log('mp4-cancelled', { name, progress: Math.round(progress * 1000) / 1000, elapsedS: elapsedS() });
       showMessage("Conversió cancel·lada. No s'ha desat cap MP4.");
       return;
     }
@@ -428,7 +471,7 @@ btnDesaMp4.addEventListener('click', async () => {
     conversion = null;
     if (current?.name === recName) setState('saved');
   }
-});
+}
 
 btnCancellaMp4.addEventListener('click', () => {
   btnCancellaMp4.disabled = true;
@@ -470,7 +513,8 @@ async function refreshLeftovers(initial = false): Promise<void> {
       recupera.type = 'button';
       recupera.className = 'boto-secundari';
       recupera.textContent = 'Recupera';
-      recupera.disabled = recording !== null;
+      recupera.dataset.recupera = '';
+      recupera.disabled = recording !== null || busy;
       recupera.addEventListener('click', () => {
         hideMessage();
         log('recover', { name: f.name, size: f.size });

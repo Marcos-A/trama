@@ -4,6 +4,7 @@
 // discarded, so the destination never ends up with half a video. The recording is not touched.
 
 import { ConversionCanceledError, convertWebmToMp4 } from '../media/webm-to-mp4.ts';
+import { heapMB } from './log.ts';
 import { RECORDINGS_DIR, type ConvertRequest, type ConvertResponse } from './shared.ts';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -30,7 +31,7 @@ async function convert(name: string, dest: RemovableHandle): Promise<void> {
           outputBytes = Math.max(outputBytes, position + data.byteLength);
         },
       },
-      { signal: abort.signal, onProgress: (fraction) => reply({ t: 'progress', fraction }) },
+      { signal: abort.signal, onProgress: (fraction) => reply({ t: 'progress', fraction, heapMB: heapMB() }) },
     );
     await out.close();
     reply({ t: 'done', ...result, inputBytes: file.size, outputBytes, ms: Math.round(performance.now() - t0) });

@@ -172,7 +172,7 @@ export type ConvertOutcome = Extract<ConvertResponse, { t: 'done' }>;
 export function convertRecordingToMp4(
   name: string,
   dest: FileSystemFileHandle,
-  onProgress: (fraction: number) => void,
+  onProgress: (fraction: number, workerHeapMB?: number) => void,
   signal: AbortSignal,
 ): Promise<ConvertOutcome | null> {
   return navigator.locks.request(LOCK_PREFIX + name, () => {
@@ -187,7 +187,7 @@ export function convertRecordingToMp4(
       };
       worker.onmessage = (e: MessageEvent<ConvertResponse>) => {
         const m = e.data;
-        if (m.t === 'progress') return onProgress(m.fraction);
+        if (m.t === 'progress') return onProgress(m.fraction, m.heapMB);
         finish();
         if (m.t === 'done') resolve(m);
         else if (m.t === 'cancelled') resolve(null);

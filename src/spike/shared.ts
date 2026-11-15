@@ -40,7 +40,7 @@ export const EXPORTS_DIR = 'exports';
 export type ConvertRequest = { t: 'start'; name: string; dest: FileSystemFileHandle } | { t: 'cancel' };
 
 export type ConvertResponse =
-  | { t: 'progress'; fraction: number }
+  | { t: 'progress'; fraction: number; heapMB?: number }
   | {
       t: 'done';
       durationS: number;
