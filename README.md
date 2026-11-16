@@ -28,7 +28,9 @@ two and a half hours; it is not the final version.
 | 4 | Burned-in subtitles and more export formats |
 
 Trama is web-only: it records meetings open in a Chrome or Edge tab. The Teams desktop app
-cannot be recorded; join the meeting in the browser instead.
+cannot be recorded; join the meeting in the browser instead. Chrome and Edge on the desktop are
+the only browsers it has been tested in, and the app recommends them; Firefox and Safari cannot
+record a tab's audio, so recording is disabled there.
 
 The full plan is in [docs/PLAN.md](docs/PLAN.md); the original phase 1 brief (in Spanish) is in
 [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).

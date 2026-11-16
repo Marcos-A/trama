@@ -3,10 +3,11 @@
 *Trama* (Catalan/Spanish): the weft of a fabric, and the plot of a story. The app weaves
 tracks together: video, audio, subtitles, translations.
 
-Status (2026-11-15): recorder prototype live on both URLs (`main`): tab recording to OPFS,
+Status (2026-11-16): recorder prototype live on both URLs (`main`): tab recording to OPFS,
 WebM repair and recovery, WebM→MP4 conversion in the browser (§2, §7), raw tab audio; Playwright
-suite. Decision gate (§5.2) taken: **web-only** (§7). Remaining spike checks (Chrome long run,
-7b–7e) in [manual-tests.md](manual-tests.md), then steps 4–5. The original brief for phase 1 is
+suite with A/V sync markers and an on-demand soak test. Decision gate (§5.2) taken: **web-only**
+(§7); target browsers Chrome and Edge. Remaining spike checks (Chrome long run, a short real-UI
+pass of 7a–7e) in [manual-tests.md](manual-tests.md), then steps 4–5. The original brief for phase 1 is
 [spec/especificacion_mvp_grabador_reuniones.md](spec/especificacion_mvp_grabador_reuniones.md)
 (Spanish); this plan adapts it to this server and to the wider product.
 
@@ -131,9 +132,14 @@ resources.
   real Chromium recording in `tests/fixtures`, including 200+ truncation points) and the browser
   tests (`tests/e2e`, including MP4 conversion with the download fallback, a stubbed save
   dialog, cancel and no-audio; H.264 + Opus, since Linux Chromium has no AAC encoder) in the Playwright image, with `--network none`; every browser test also
-  fails on a CSP violation or a request to another origin.
-  Chromium only (capture only matters in Chrome/Edge); avoid running alongside other projects'
-  browser suites, which load the 6-core server heavily.
+  fails on a CSP violation or a request to another origin. A/V sync is measured on flash-and-beep
+  markers in the synthetic stream, decoded with Mediabunny (`tests/e2e/sync.spec.ts`); the soak
+  test (`tests/soak`, `SOAK_MINUTES=120`) runs the same checks plus heap, gaps, repair, seeking
+  and MP4 over a long recording. Headless Firefox and WebKit only check that recording is
+  disabled there (`tests/other-browsers`).
+  Chromium only otherwise (capture only matters in Chrome/Edge, the only target browsers; Safari
+  and Brave are out of scope); avoid running alongside other projects' browser suites, which
+  load the 6-core server heavily.
 - **Manual (Mac, real Teams):** the brief's §6 checklist, recorded in `docs/manual-tests.md`
   with browser versions and results.
 - **Flow:** work on branches → deploy to preview → manual test on the Mac → merge to `main` →

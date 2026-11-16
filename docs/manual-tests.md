@@ -1,8 +1,35 @@
 # Manual tests
 
 Real-capture tests run by hand on macOS (brief §6, [PLAN.md](PLAN.md) §4–5). Automated tests
-only cover headless Chromium with a synthetic stream; anything involving a real Teams tab,
-real audio or long runs is recorded here.
+only cover headless Chromium with a synthetic stream; anything involving a real Teams tab or
+real audio is recorded here. Target browsers: Chrome and Edge on the desktop. Safari and Brave
+are out of scope (2026-11-16); the app says it has only been tested in Chrome and Edge.
+
+## What the automated tests already cover
+
+`bash scripts/test.sh` runs these on every change (headless Chromium, synthetic tab stream).
+They exercise Trama's own logic; the manual runs below confirm the real browser interface and
+real Teams capture.
+
+| Check | Automated test |
+|---|---|
+| 1, 5a/5b (sync) | `tests/e2e/sync.spec.ts`: flash-and-beep markers, A/V offset in the WebM and the MP4 |
+| 5a, 5b, 8c | `tests/soak` (on demand, below): long recording, heap, gaps, repair, seeking, MP4, sync |
+| 7a | "cancelling the picker returns to the start with a message" |
+| 7b | "stopping the share from the browser bar stops and keeps the file" (ends the track; does not click the real bar) |
+| 7c | "closed tab mid-recording …", plus the cut-file repair unit tests |
+| 7d | "simulated full storage (?quota=) …" |
+| 7e | "no audio track: 'Sense so' warning" |
+| 7g | `tests/other-browsers`: headless Firefox and WebKit are turned away |
+| 8d | "cancelling the MP4 conversion leaves no file …" |
+
+Soak test: `SOAK_MINUTES=120 bash scripts/test.sh --project=soak --output=soak-results`
+records that long with markers every 10 s, then checks the full log (no `chunk-gap`,
+silence, track or write errors; heap flat), the repaired WebM (duration, seeks to the middle
+and end, sync at 25 markers) and its MP4 (seeks, picture and sound timing against the WebM).
+`soak-results/` keeps `soak-summary.json`, `soak-sync.json` and the full log. It occupies the
+shared server for the whole run; avoid running it next to other projects' browser suites.
+Headless Chromium is never throttled like a hidden tab on a Mac, so it does not replace check 3.
 
 ## How to run a spike session
 
@@ -50,7 +77,9 @@ Long runs cover several checks at once:
    other tabs, minimise, other apps), 4, 5a (note the size at 60 min from the log) and 5b.
    Check A/V sync near the start, at ~60 min and at the end (a clap or a spoken number on camera).
 2. **Edge, 60 min**: checks 2, 3 again, 4, 5a.
-3. **Short runs (2–5 min) in each browser**: 7a–7e. Check 6 is optional: the desktop app is out of scope.
+3. **Short runs (2–5 min) in each browser**: 7a–7e, to confirm the real picker, the "Stop
+   sharing" bar and a killed tab (the logic is automated, see above). Check 6 is optional: the
+   desktop app is out of scope.
 
 Download the log after each recording, before reloading the page.
 
@@ -83,7 +112,7 @@ runs; the extension and native options are out of scope (PLAN §7).
 | 7d | Low space (`?debug&quota=50`) | Stops with the space message, file kept |
 | 7e | Untick "share tab audio" | "Sense so" warning shown during recording |
 | 7f | Any recording with a Teams meeting (Chrome, then Edge) | In `recording-started`, the audio track shows `echoCancellation`, `noiseSuppression` and `autoGainControl` `false` (note `channelCount`); the saved file sounds normal, with no change in level or quality against earlier recordings |
-| 7g | Open Trama in Safari (and Firefox if installed) | **Grava una pestanya** disabled, message asks for Chrome or Edge on desktop; Brave (Chromium) is not blocked. Headless Firefox and WebKit are covered by `tests/other-browsers`; this check is for real Safari and Brave |
+| 7g | *(Postponed; Safari and Brave out of scope since 2026-11-16)* Open Trama in Safari | **Grava una pestanya** disabled, message asks for Chrome or Edge on desktop. Headless Firefox and WebKit are covered by `tests/other-browsers` |
 | 8a | **Desa en MP4** (Chrome), after a ≥ 5-min recording | Save dialog first, then progress; the saved `.mp4` plays in QuickTime with sound and the same duration, seeks; log `mp4.audioCodec` is `aac`; note `mp4.ms` and the size against the WebM |
 | 8b | Same in Edge | Same |
 | 8c | **Desa en MP4** on the 60-min recording, tab in the background meanwhile | Completes; note `mp4.ms`, heap flat; A/V sync at the end matches the WebM |
@@ -111,5 +140,11 @@ runs; the extension and native options are out of scope (PLAN §7).
   must stay open. Where the browser has no AAC encoder, the MP4 keeps Opus audio (VLC and
   browsers play it; QuickTime may not). The MP4 has its index at the end, which only matters
   when streaming it from a web server.
+- **Desa en MP4** lays the audio back to back and keeps the picture's timestamps, so if the
+  tab's audio clock and the computer's clock disagree, the MP4 drifts by the difference, while
+  the WebM (stamped with capture time) does not. On the Mac the clocks agree closely (2 h 29 min
+  MP4 in sync, check 8c); in headless Chromium the fake audio device runs 0.1–3 % slow, which is
+  why the automated tests compare the MP4 with its WebM (`tests/helpers/av-sync.ts`). If a long
+  real MP4 is ever out of sync while its WebM is not, this is the cause.
 - Choosing to replace an existing file in the save dialog empties it straight away (Chrome and
   Edge do this, not the app), so cancelling or failing the export afterwards loses the old file.

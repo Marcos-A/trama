@@ -4,7 +4,7 @@
 
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
-import { expect, logEvents, opfsFiles, playerReady, record, stopAndWaitSaved, test } from './fixtures.ts';
+import { expect, fakeSavePicker, logEvents, opfsFiles, playerReady, record, stopAndWaitSaved, test } from './fixtures.ts';
 
 interface Mp4Log {
   durationS: number;
@@ -54,17 +54,6 @@ async function playOpfsFile(page: Page, dir: string, name: string) {
     },
     [dir, name],
   );
-}
-
-/** Replaces the save dialog with one that "picks" a file in OPFS (`picked/<name>`). */
-async function fakeSavePicker(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    (window as unknown as { showSaveFilePicker: unknown }).showSaveFilePicker = async ({ suggestedName }: { suggestedName: string }) => {
-      const root = await navigator.storage.getDirectory();
-      const dir = await root.getDirectoryHandle('picked', { create: true });
-      return dir.getFileHandle(suggestedName, { create: true }); // the real dialog creates it too
-    };
-  });
 }
 
 async function pickedFiles(page: Page): Promise<{ name: string; size: number }[]> {

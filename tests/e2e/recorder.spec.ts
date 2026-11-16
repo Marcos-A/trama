@@ -141,6 +141,11 @@ test('the start screen reminds the user to tell the meeting before recording', a
   await expect(page.locator('#vista-inici')).toContainText('Abans de gravar, avisa els participants de la reunió.');
 });
 
+test('the start screen says Trama is tested in, and recommends, Chrome and Edge', async ({ openApp }) => {
+  const page = await openApp();
+  await expect(page.locator('#vista-inici')).toContainText("només s'ha provat amb Chrome i Edge d'escriptori, que són els navegadors recomanats");
+});
+
 test('browsers other than desktop Chromium are told to use Chrome or Edge', async ({ page }) => {
   // Firefox and Safari have no User-Agent Client Hints.
   await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'userAgentData', { get: () => undefined }));

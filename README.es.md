@@ -29,6 +29,8 @@ Edge en macOS, con grabaciones de hasta dos horas y media; no es la versión fin
 
 Trama funciona solo en el navegador: graba reuniones abiertas en una pestaña de Chrome o Edge.
 No puede grabar la aplicación de escritorio de Teams; en ese caso, entra en la reunión desde el navegador.
+Solo se ha probado con Chrome y Edge de escritorio, que son los navegadores que recomienda la aplicación;
+Firefox y Safari no pueden grabar el audio de una pestaña, y por eso en ellos la grabación está desactivada.
 
 El plan completo está en [docs/PLAN.md](docs/PLAN.md) (en inglés); el encargo original de la
 fase 1 está en [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).

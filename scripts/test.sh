@@ -4,6 +4,7 @@
 #
 #   bash scripts/test.sh                 # everything
 #   bash scripts/test.sh --project=unit  # extra args go to `playwright test`
+#   SOAK_MINUTES=120 bash scripts/test.sh --project=soak  # long synthetic recording
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -11,7 +12,7 @@ IMAGE="mcr.microsoft.com/playwright:v$(node -p 'require("./package.json").devDep
   || sed -n 's/.*"@playwright\/test": "\([0-9.]*\)".*/\1/p' package.json)-noble"
 
 docker run --rm --init --ipc=host --network none \
-  -u "$(id -u):$(id -g)" -e HOME=/tmp -e CI="${CI:-}" \
+  -u "$(id -u):$(id -g)" -e HOME=/tmp -e CI="${CI:-}" -e SOAK_MINUTES="${SOAK_MINUTES:-}" \
   -v "$PWD:/work" -w /work \
   "$IMAGE" \
   bash -c 'npx tsc --noEmit && npx tsc --noEmit -p tests && npx playwright test "$@"' -- "$@"

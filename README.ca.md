@@ -29,6 +29,8 @@ macOS, amb gravacions de fins a dues hores i mitja; no és la versió final.
 
 Trama funciona només al navegador: grava reunions obertes en una pestanya de Chrome o Edge.
 No pot gravar l'aplicació d'escriptori de Teams; en aquest cas, entra a la reunió des del navegador.
+Només s'ha provat amb Chrome i Edge d'escriptori, que són els navegadors que recomana l'aplicació;
+Firefox i Safari no poden gravar l'àudio d'una pestanya, i per això s'hi desactiva la gravació.
 
 El pla complet és a [docs/PLAN.md](docs/PLAN.md) (en anglès); l'encàrrec original de la fase 1
 (en castellà) és a [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
