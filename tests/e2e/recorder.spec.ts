@@ -136,6 +136,11 @@ test('with ?debug the log panel is shown', async ({ openApp }) => {
   await expect(page.locator('#panell-registre')).toBeVisible();
 });
 
+test('the start screen reminds the user to tell the meeting before recording', async ({ openApp }) => {
+  const page = await openApp();
+  await expect(page.locator('#vista-inici')).toContainText('Abans de gravar, avisa els participants de la reunió.');
+});
+
 test('browsers other than desktop Chromium are told to use Chrome or Edge', async ({ page }) => {
   // Firefox and Safari have no User-Agent Client Hints.
   await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'userAgentData', { get: () => undefined }));

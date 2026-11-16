@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
-// Headless Chromium only (capture matters in Chrome/Edge). Run through scripts/test.sh, which
+// Headless Chromium for everything (capture matters in Chrome/Edge); Firefox and WebKit only
+// for tests/other-browsers, which checks that they are turned away (manual check 7g). Run through scripts/test.sh, which
 // uses the Playwright Docker image pinned to the same version as @playwright/test.
 // The app is served by `vite preview`, which sends the production CSP and Permissions-Policy.
 
@@ -25,6 +26,11 @@ export default defineConfig({
         acceptDownloads: true,
       },
     },
+    ...(['firefox', 'webkit'] as const).map((browserName) => ({
+      name: browserName,
+      testMatch: 'other-browsers/**/*.spec.ts',
+      use: { browserName, baseURL: `http://127.0.0.1:${PORT}` },
+    })),
   ],
   webServer: {
     command: `npx vite build && npx vite preview --host 127.0.0.1 --port ${PORT} --strictPort`,

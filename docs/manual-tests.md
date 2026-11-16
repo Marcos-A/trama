@@ -83,7 +83,7 @@ runs; the extension and native options are out of scope (PLAN §7).
 | 7d | Low space (`?debug&quota=50`) | Stops with the space message, file kept |
 | 7e | Untick "share tab audio" | "Sense so" warning shown during recording |
 | 7f | Any recording with a Teams meeting (Chrome, then Edge) | In `recording-started`, the audio track shows `echoCancellation`, `noiseSuppression` and `autoGainControl` `false` (note `channelCount`); the saved file sounds normal, with no change in level or quality against earlier recordings |
-| 7g | Open Trama in Safari (and Firefox if installed) | **Grava una pestanya** disabled, message asks for Chrome or Edge on desktop; Brave (Chromium) is not blocked |
+| 7g | Open Trama in Safari (and Firefox if installed) | **Grava una pestanya** disabled, message asks for Chrome or Edge on desktop; Brave (Chromium) is not blocked. Headless Firefox and WebKit are covered by `tests/other-browsers`; this check is for real Safari and Brave |
 | 8a | **Desa en MP4** (Chrome), after a ≥ 5-min recording | Save dialog first, then progress; the saved `.mp4` plays in QuickTime with sound and the same duration, seeks; log `mp4.audioCodec` is `aac`; note `mp4.ms` and the size against the WebM |
 | 8b | Same in Edge | Same |
 | 8c | **Desa en MP4** on the 60-min recording, tab in the background meanwhile | Completes; note `mp4.ms`, heap flat; A/V sync at the end matches the WebM |
