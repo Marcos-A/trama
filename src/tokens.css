@@ -1,32 +1,41 @@
-/* Trama — design tokens v1
+/* Trama — design tokens v2 (mesh & plot)
    Light by default; dark follows the system setting.
-   Contrast ratios (WCAG 2.x) are against --lli of the same theme. */
+   Contrast ratios (WCAG 2.x) are against --lli of the same theme.
+   Roles: indigo = ordit (warp: structure, tracks, time, primary action)
+          saffron = trama (weft: the plot, "look here": hits, current line, 2nd language, warnings)
+          malla = the mesh at rest (inactive/unplayed; decoration only)
+          red = recording is live, nothing else */
 
 :root {
   color-scheme: light dark;
 
   /* Ground & surfaces */
   --lli: #F6F5F2;            /* page ground (linen) */
-  --superficie: #FFFFFF;     /* cards, inputs */
+  --superficie: #FFFFFF;     /* cards, inputs, panels */
   --linia: #E3E0D8;          /* hairlines, dividers */
   --linia-forta: #C9C5BB;    /* input borders */
 
   /* Text */
-  --tinta: #23262B;          /* body text           13.9:1 */
-  --fum: #5B5F66;            /* secondary text       5.9:1 */
+  --tinta: #23262B;          /* body text            13.9:1 */
+  --fum: #5B5F66;            /* secondary text        5.9:1 */
 
-  /* Brand */
-  --indi: #33407A;           /* primary action, warp 8.9:1 */
+  /* Ordit — warp, structure */
+  --indi: #33407A;           /* primary action, played timeline, links   8.9:1 */
   --indi-fosc: #283363;      /* primary hover/active */
-  --indi-suau: #E6E8F2;      /* selected rows, focus fill */
-  --sobre-indi: #F6F5F2;     /* text on --indi       8.9:1 */
-  --safra: #B07A1E;          /* weft, 2nd-language track — graphics only (3.4:1) */
-  --safra-text: #8A5A12;     /* saffron text         5.4:1 */
-  --safra-suau: #F5EAD4;     /* warning panel fill */
+  --indi-suau: #E6E8F2;      /* selected row, focus fill */
+  --sobre-indi: #F6F5F2;     /* text on --indi        8.9:1 */
+
+  /* Trama — weft, the plot */
+  --safra: #B07A1E;          /* graphics only (3.4:1): mark weft, knots, markers */
+  --safra-text: #8A5A12;     /* saffron words         5.4:1 */
+  --safra-suau: #F5EAD4;     /* search-hit background, warning panel fill */
   --safra-vora: #E6CF9F;     /* warning panel border */
 
-  /* Recording signal — never use for brand or errors */
-  --gravant: #C4352B;        /*                      5.0:1 */
+  /* Malla — the mesh at rest (decoration only, never text) */
+  --malla: #A4ABD0;          /* unplayed timeline, tracks not made yet */
+
+  /* Recording signal */
+  --gravant: #C4352B;        /*                        5.0:1 */
   --gravant-suau: #FBE9E7;
   --gravant-text: #A12A21;
 
@@ -48,8 +57,9 @@
   --radi-gran: 16px;
   --espai-1: 4px;  --espai-2: 8px;  --espai-3: 12px; --espai-4: 16px;
   --espai-5: 24px; --espai-6: 32px; --espai-7: 48px; --espai-8: 64px;
-  --amplada-app: 560px;
+  --amplada-app: 560px;      /* recorder column; transcript views may go to 960px */
   --alcada-boto: 52px;       /* primary buttons; min touch target 44px */
+  --fil: 6px;                /* track / timeline thread thickness */
   --focus: 0 0 0 3px var(--lli), 0 0 0 5px var(--indi);
 }
 
@@ -67,10 +77,13 @@
     --indi-fosc: #B3BEEA;
     --indi-suau: #262B40;
     --sobre-indi: #16171A;   /*  7.7:1 on --indi */
+
     --safra: #E0B25C;
     --safra-text: #E0B25C;   /*  9.1:1 */
     --safra-suau: #2E2718;
     --safra-vora: #5A4823;
+
+    --malla: #4E5788;
 
     --gravant: #F0645A;      /*  5.7:1 */
     --gravant-suau: #3A1D1B;
@@ -82,3 +95,6 @@
 html { background: var(--lli); color: var(--tinta); font-family: var(--font-ui); }
 .temps { font-family: var(--font-temps); font-variant-numeric: tabular-nums; }
 :focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* Search hit inside transcript text */
+mark.nus { background: var(--safra-suau); color: inherit; border-bottom: 2px solid var(--safra); padding: 0 1px; }

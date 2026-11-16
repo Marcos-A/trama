@@ -1,4 +1,4 @@
-/* Colours, type and spacing come from tokens.css (brand pack v1, docs/brand/). */
+/* Colours, type and spacing come from tokens.css (brand pack v2, docs/brand/). */
 
 body {
   margin: 0;
@@ -33,6 +33,10 @@ header {
   color: var(--tinta);
   text-decoration: none;
   border-radius: var(--radi-petit);
+}
+
+.marca img {
+  display: block;
 }
 
 main {
