@@ -50,6 +50,17 @@ async function stop(page: Page) {
  */
 const afterStart = (r: SyncReport): SyncReport => ({ ...r, markers: r.markers.filter((m) => m.expectedS >= 2) });
 
+/**
+ * In sync through real capture: each marker within the brief's 0.5 s (the macOS CI VM's capture
+ * puts the odd marker ~0.17 s out, in the WebM itself), most within 0.1 s, and no drift.
+ */
+function expectCaptureInSync(r: SyncReport, minMarkers: number) {
+  const report = afterStart(r);
+  expectInSync(report, minMarkers, { maxOffsetS: 0.5 });
+  const sorted = report.markers.map((m) => Math.abs(m.offsetS!)).sort((a, b) => a - b);
+  expect(sorted[Math.floor(sorted.length / 2)], 'median picture-minus-sound offset').toBeLessThan(0.1);
+}
+
 const meetingTab = (page: Page) => page.context().pages().find((p) => p.url().includes('/__test__/meeting'))!;
 const meetingFrames = (page: Page) =>
   meetingTab(page).evaluate(() => (window as unknown as { __frames: () => number }).__frames());
@@ -84,14 +95,16 @@ for (const webrtc of [false, true]) {
     expect(audio.settings).toMatchObject({ echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2 });
     expect(report.bad).toEqual({});
     // 1/2: in sync through the browser's own capture, and kept so in the MP4.
-    expectInSync(afterStart(fromWebm), 8);
-    expectInSync(afterStart(fromMp4), 8);
+    expectCaptureInSync(fromWebm, 8);
+    expectCaptureInSync(fromMp4, 8);
     expectMp4MatchesWebm(afterStart(fromMp4), afterStart(fromWebm));
     // Neither the server nor the macOS CI VM has a sound card: the browser's stand-in output
     // glitches under load, so the captured WebM has clicks of its own (counted in the report),
     // and only the MP4 is held to adding none.
     const shift = (mp4Log.audioRetime?.paddedS ?? 0) + (mp4Log.audioRetime?.trimmedS ?? 0);
-    expectNoNewClicks(clicks.mp4, clicks.webm, 16, 0.03 + shift);
+    // The click finder decodes the MP4 without its edit list, so AAC's priming (44 ms) moves it.
+    const priming = mp4Log.audioCodec === 'aac' ? 0.05 : 0;
+    expectNoNewClicks(clicks.mp4, clicks.webm, 16, 0.03 + shift + priming);
     if (onMac) expect(mp4Log.audioCodec).toBe('aac');
   });
 }
@@ -130,7 +143,7 @@ test(`both tabs hidden for ${HIDDEN_S} s: the recording keeps its picture and so
   expect(Math.abs(report.duration - (HIDDEN_S + 20)), 'recorded the whole time').toBeLessThan(5);
   // A marker every 3 s all the way through means the picture kept changing and the sound kept
   // coming while both tabs were hidden.
-  expectInSync(afterStart(sync), Math.floor((HIDDEN_S + 20) / PERIOD_S) - 3);
+  expectCaptureInSync(sync, Math.floor((HIDDEN_S + 20) / PERIOD_S) - 3);
 });
 
 test('the shared tab closing mid-recording stops it and keeps the file', async ({ openApp }) => {

@@ -219,8 +219,11 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   // Real capture: without the first marker, in the first second while the picture starts
   // (see tests/capture).
   const checked = (r: typeof webmSync) => (REAL ? { ...r, markers: r.markers.filter((m) => m.expectedS >= 2) } : r);
-  expectInSync(checked(webmSync), minMarkers - (REAL ? 1 : 0));
-  expectInSync(checked(mp4Sync), minMarkers - (REAL ? 1 : 0));
+  // Real capture is held to the brief's 0.5 s per marker (the VM's capture puts the odd one
+  // ~0.17 s out); no drift either way.
+  const syncOpts = REAL ? { maxOffsetS: 0.5 } : {};
+  expectInSync(checked(webmSync), minMarkers - (REAL ? 1 : 0), syncOpts);
+  expectInSync(checked(mp4Sync), minMarkers - (REAL ? 1 : 0), syncOpts);
   expectMp4MatchesWebm(checked(mp4Sync), checked(webmSync));
   const minEdges = 2 * minMarkers;
   // Real capture without a sound card (the server, the macOS CI VM) goes through the browser's

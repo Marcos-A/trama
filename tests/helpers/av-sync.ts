@@ -196,18 +196,18 @@ export async function measureSync(
 }
 
 /**
- * Every checked marker found, each within 0.15 s, and no drift: the median offset of the last
+ * Every checked marker found, each within 0.15 s (`maxOffsetS`), and no drift: the median offset of the last
  * markers within 0.1 s of the first ones'. A median, not the full spread, because a flash can
  * only land on a 33 ms frame and a busy server delays the odd one by a frame or two more
  * (one +83 ms marker among 25 in the first 2-hour run, with no trend at all).
  */
-export function expectInSync(report: SyncReport, minMarkers: number): void {
+export function expectInSync(report: SyncReport, minMarkers: number, { maxOffsetS = 0.15 }: { maxOffsetS?: number } = {}): void {
   const offsets = report.markers.map((m) => m.offsetS);
   expect(offsets.length, `markers found in ${report.durationS.toFixed(1)} s`).toBeGreaterThanOrEqual(minMarkers);
   expect(offsets, 'every marker has both a flash and a beep').not.toContain(null);
   const values = offsets as number[];
   // The manual criterion is 0.5 s; the synthetic pipeline should do far better.
-  for (const o of values) expect(Math.abs(o), 'picture-minus-sound offset').toBeLessThan(0.15);
+  for (const o of values) expect(Math.abs(o), 'picture-minus-sound offset').toBeLessThan(maxOffsetS);
   const n = Math.max(1, Math.min(5, Math.floor(values.length / 2)));
   const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
   expect(Math.abs(median(values.slice(-n)) - median(values.slice(0, n))), 'drift: last markers against the first').toBeLessThan(0.1);
