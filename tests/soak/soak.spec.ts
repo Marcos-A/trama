@@ -9,26 +9,40 @@
 // has AVFoundation (QuickTime's framework) decode the MP4 to the end: the Mac re-checks of 8a
 // (SOAK_MINUTES=5) and 8c (60), run by .github/workflows/mac.yml in installed Chrome and Edge.
 //
-// Headless Chromium is never throttled like a hidden tab on a Mac, so this does not replace
-// check 3; it shows that Trama itself holds up over the length of a meeting.
+// With SOAK_CAPTURE=real it records a meeting tab through Chrome's real tab capture instead
+// (tests/capture, tests/helpers/meeting-tab.ts), in a browser started as a user has it, and keeps
+// Trama and the meeting tab hidden from the first minute to the last, and again during the MP4
+// conversion: check 3 at full length, through Chrome's intensive throttling (after 5 minutes
+// hidden). The synthetic stream is generated inside Trama's own page, so without it this does
+// not replace check 3; it shows that Trama itself holds up over the length of a meeting.
 //
 // Headless Chromium's audio clock runs slow; the MP4 has to keep the WebM's recorded audio timing
 // regardless, so it is checked in sync on its own and marker by marker against the WebM (see
 // tests/helpers/av-sync.ts). The summary has the converter's corrections (`mp4.audioRetime`).
 
 import type { Page } from '@playwright/test';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expectInSync, expectMp4MatchesWebm, measureSync } from '../helpers/av-sync.ts';
 import { avfoundationCheck, expectPlaysInQuickTime, onMac, saveOpfsFile } from '../helpers/avfoundation.ts';
 import { expectNoClicks, findClicks } from '../helpers/clicks.ts';
 import { expect, fakeSavePicker, opfsFiles, playerReady, record, test as base } from '../e2e/fixtures.ts';
+import { hideTabs } from '../helpers/meeting-tab.ts';
+import { launchRealBrowser } from '../helpers/real-browser.ts';
+
+const REAL = process.env.SOAK_CAPTURE === 'real';
 
 // A normal browser profile on disk instead of Playwright's default private-mode context, whose
 // small storage quota fits a 2-hour recording but not the second copy the repair needs.
 const test = base.extend({
   context: async ({ playwright, baseURL, channel, headless, launchOptions }, use) => {
+    if (REAL) {
+      const real = await launchRealBrowser(channel, launchOptions.args ?? []);
+      await use(real.context);
+      await real.close();
+      return;
+    }
     const dir = mkdtempSync(join(tmpdir(), 'trama-soak-'));
     // Same browser as the project (bundled Chromium, or installed Chrome or Edge on macOS).
     const context = await playwright.chromium.launchPersistentContext(dir, { ...launchOptions, channel, headless, baseURL, acceptDownloads: true });
@@ -102,11 +116,23 @@ test.skip(!MINUTES, 'set SOAK_MINUTES to run');
 
 test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts, stays in sync`, async ({ openApp }) => {
   test.setTimeout((MINUTES * 60 + 3600) * 1000);
-  const page = await openApp({ markers: PERIOD_S });
+  const page = await openApp({ markers: PERIOD_S, ...(REAL ? { capture: 'real' as const } : {}) });
   const seconds = MINUTES * 60;
 
   step('recording');
-  await record(page, seconds * 1000);
+  let hiddenS = 0;
+  if (REAL && seconds > 180) {
+    await record(page, 60_000);
+    step('hiding Trama and the meeting tab');
+    const show = await hideTabs(page);
+    hiddenS = seconds - 120;
+    await page.waitForTimeout(hiddenS * 1000);
+    await show();
+    step('shown again');
+    await page.waitForTimeout(60_000);
+  } else {
+    await record(page, seconds * 1000);
+  }
   step('stopping');
   await page.click('#atura');
   await expect(page.locator('#vista-desat')).toBeVisible({ timeout: 900_000 });
@@ -123,7 +149,9 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   await fakeSavePicker(page);
   await page.fill('#nom', 'soak');
   await page.click('#desa-mp4');
+  const showAfterMp4 = REAL ? await hideTabs(page) : null;
   await expect(page.locator('#missatge')).toContainText('Vídeo desat en MP4', { timeout: 3_600_000 });
+  await showAfterMp4?.();
   step('seeking the MP4');
   const mp4Seek = await seekFile(page, 'picked', 'soak.mp4', [0.5, 0.99]);
   step('measuring MP4 sync');
@@ -141,10 +169,19 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   }
 
   step('reading the log');
-  // The on-page log keeps only the last 300 lines; the downloaded JSON has every entry.
+  // The on-page log keeps only the last 300 lines; the downloaded JSON has every entry. Read from
+  // the Blob the page builds for the download (a CDP-attached browser saves downloads itself).
   await page.click('#panell-registre summary');
-  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#baixa-registre')]);
-  const entries = (JSON.parse(readFileSync((await download.path())!, 'utf8')) as { entries: Entry[] }).entries;
+  await page.evaluate(() => {
+    const create = URL.createObjectURL;
+    URL.createObjectURL = (b: Blob | MediaSource) => {
+      (window as unknown as { __logBlob: unknown }).__logBlob = b;
+      return create(b);
+    };
+    document.querySelector<HTMLAnchorElement>('#baixa-registre')!.click();
+  });
+  const logText = await page.evaluate(() => ((window as unknown as { __logBlob: Blob }).__logBlob).text());
+  const entries = (JSON.parse(logText) as { entries: Entry[] }).entries;
   const one = (ev: string) => entries.find((e) => e.ev === ev)?.data ?? {};
   const samples = entries.filter((e) => e.ev === 'sample').map((e) => e.data!.heapMB as number);
   const mp4Samples = entries.filter((e) => e.ev === 'mp4-sample').map((e) => e.data!.heapMB as number);
@@ -152,6 +189,7 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
 
   const summary = {
     minutes: MINUTES,
+    capture: REAL ? { real: true, hiddenS, visibility: entries.filter((e) => e.ev === 'visibility').map((e) => [e.at, e.data]) } : 'synthetic',
     storageAtStart: one('storage'),
     stopped: one('recording-stopped'),
     badEvents: entries.filter((e) => BAD_EVENTS.includes(e.ev)),
@@ -182,8 +220,13 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   expectInSync(mp4Sync, minMarkers);
   expectMp4MatchesWebm(mp4Sync, webmSync);
   const minEdges = 2 * minMarkers;
-  expectNoClicks(webmClicks, minEdges);
-  expectNoClicks(mp4Clicks, minEdges);
+  // Real capture on the server goes through Chromium's stand-in sound output (no sound card),
+  // which glitches under load: dozens of clicks in the WebM itself, so the counts are only
+  // reported (tests/capture checks the MP4 adds none). On macOS both must be clean.
+  if (!REAL || onMac) {
+    expectNoClicks(webmClicks, minEdges);
+    expectNoClicks(mp4Clicks, minEdges);
+  }
   if (onMac) {
     expect(summary.mp4).toMatchObject({ audioCodec: 'aac' });
     expectPlaysInQuickTime(quicktime!, webmSync.durationS);

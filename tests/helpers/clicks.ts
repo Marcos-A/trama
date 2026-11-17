@@ -77,3 +77,16 @@ export function expectNoClicks(report: ClickReport, minEdges: number): void {
   expect(report.edges, 'beep edges found').toBeGreaterThanOrEqual(minEdges);
   expect(report.clicks, `clicks in ${report.seconds.toFixed(1)} s of audio`).toEqual([]);
 }
+
+/**
+ * The MP4 adds no clicks of its own: each one it has sits where the WebM already had one, give or
+ * take `toleranceS` (the converter's pads and trims shift the audio by up to their total). For
+ * real tab capture on the server, whose audio output is a timer-driven fake device that glitches
+ * under load, so the WebM itself is not clean there.
+ */
+export function expectNoNewClicks(mp4: ClickReport, webm: ClickReport, minEdges: number, toleranceS: number): void {
+  expect(mp4.edges, 'beep edges found').toBeGreaterThanOrEqual(minEdges);
+  expect(webm.count, 'too many clicks in the WebM to compare').toBeLessThanOrEqual(webm.clicks.length);
+  const added = mp4.clicks.filter((c) => !webm.clicks.some((w) => Math.abs(w.atS - c.atS) <= toleranceS));
+  expect(added, 'clicks in the MP4 that the WebM does not have').toEqual([]);
+}

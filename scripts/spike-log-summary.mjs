@@ -4,7 +4,9 @@
 //   node scripts/spike-log-summary.mjs <log.json> [more.json ...]
 //
 // Prints, per recording in each log: browser, stop reason, duration, size, chunk gaps, heap
-// trend, audio problems, recovery/export, then a draft row for the Results table. The draft
+// trend, audio track settings (7f) and problems, recovery/export, MP4 conversions (time, audio
+// codec, `audioRetime` corrections, heap and hidden time while converting), then a draft row
+// for the Results table. The draft
 // leaves macOS, the check number and A/V sync to fill in by hand: the log cannot know them.
 // Logs are treated as data only (JSON.parse), never executed.
 
@@ -14,6 +16,7 @@ import { basename } from 'node:path';
 const ERROR_EVENTS = new Set([
   'picker-failed', 'start-failed', 'write-error', 'recorder-error', 'worker-error',
   'export-failed', 'player-error', 'unsupported', 'non-tab-surface', 'repair-failed', 'show-failed',
+  'mp4-failed',
 ]);
 
 function browserOf(env = {}) {
@@ -54,7 +57,8 @@ function summariseRun(run) {
   const gaps = ev('chunk-gap').map((e) => e.data ?? {});
   const tracks = startData.tracks ?? [];
   const video = tracks.find((tr) => tr.kind === 'video');
-  const hasAudio = tracks.some((tr) => tr.kind === 'audio');
+  const audio = tracks.find((tr) => tr.kind === 'audio');
+  const hasAudio = !!audio;
 
   // Time spent hidden, from visibility events inside the run.
   let hiddenMs = 0;
@@ -79,6 +83,11 @@ function summariseRun(run) {
     surface: video?.settings?.displaySurface,
     resolution: video?.settings?.width ? `${video.settings.width}×${video.settings.height}@${round1(video.settings.frameRate ?? 0)}` : undefined,
     hasAudio,
+    audioSettings: audio?.settings
+      ? ['echoCancellation', 'noiseSuppression', 'autoGainControl', 'channelCount', 'sampleRate']
+          .map((k) => `${k} ${audio.settings[k]}`)
+          .join(', ')
+      : undefined,
     stopReason: stopped?.data?.reason ?? '(no stop: tab closed or log taken mid-recording)',
     durationS,
     fileMB: fileMB ?? '?',
@@ -99,6 +108,38 @@ function summariseRun(run) {
     silenceOpen: ev('audio-silence-start').length > ev('audio-silence-end').length,
     errors: run.events.filter((e) => ERROR_EVENTS.has(e.ev)).map((e) => `${e.ev} ${JSON.stringify(e.data ?? '')}`),
   };
+}
+
+/**
+ * MP4 conversions: each `mp4` (done), `mp4-cancelled` or `mp4-failed`, with the `mp4-sample`s
+ * logged since the previous one (heap, and whether the tab was hidden while converting).
+ */
+function mp4Lines(entries) {
+  const out = [];
+  let samples = [];
+  for (const e of entries) {
+    const d = e.data ?? {};
+    if (e.ev === 'mp4-sample') { samples.push(d); continue; }
+    if (!['mp4', 'mp4-cancelled', 'mp4-failed'].includes(e.ev)) continue;
+    const heaps = samples.map((s) => s.heapMB).filter((h) => typeof h === 'number');
+    const hidden = samples.filter((s) => s.hidden).length;
+    const during = samples.length
+      ? `; ${samples.length} samples, ${hidden} hidden${heaps.length ? `, heap ${heaps[0]}–${Math.max(...heaps)} MB` : ''}`
+      : '';
+    if (e.ev === 'mp4') {
+      const rt = d.audioRetime;
+      const retime = rt ? `${rt.pads} pads (${rt.paddedS} s), ${rt.trims} trims (${rt.trimmedS} s)` : 'none';
+      const ratio = d.inputBytes ? ` (${round1(d.outputBytes / d.inputBytes)}×)` : '';
+      out.push(`MP4: ${d.name}, ${d.audioCodec}, ${d.width}×${d.height}, ${d.durationS} s; ${round1((d.inputBytes ?? 0) / 1e6)} → ${round1((d.outputBytes ?? 0) / 1e6)} MB${ratio} in ${d.ms} ms; save dialog ${d.download ? 'no (download)' : 'yes'}`);
+      out.push(`  audioRetime: ${retime}${during}`);
+    } else if (e.ev === 'mp4-cancelled') {
+      out.push(`MP4 cancelled: ${d.name} at ${Math.round((d.progress ?? 0) * 100)} %, ${d.elapsedS} s${during}`);
+    } else {
+      out.push(`MP4 FAILED (${d.stage}): ${d.name ?? ''} ${d.message ?? ''}${during}`);
+    }
+    samples = [];
+  }
+  return out;
 }
 
 function summariseLog(path) {
@@ -122,11 +163,13 @@ function summariseLog(path) {
   for (const x of after('repair-skipped')) console.log(`Repair skipped (already repaired): ${x.data?.name}`);
   for (const x of after('repair-failed')) console.log(`REPAIR FAILED: ${x.data?.name} ${x.data?.error}: ${x.data?.message}`);
   for (const x of after('export')) console.log(`Export: ${x.data?.result} ${x.data?.name} ${round1((x.data?.size ?? 0) / 1e6)} MB in ${x.data?.ms} ms`);
+  for (const line of mp4Lines(entries)) console.log(line);
   if (outsideErrors.length) console.log(`Errors outside recordings:\n  ${outsideErrors.join('\n  ')}`);
 
   runs.forEach((r, i) => {
     console.log(`\n### Recording ${i + 1}: ${r.name ?? '?'} (started ${r.startedAt})`);
     console.log(`  mime ${r.mimeType}; surface ${r.surface}; ${r.resolution ?? '?'}; audio track: ${r.hasAudio ? 'yes' : 'NO'}`);
+    if (r.audioSettings) console.log(`  audio: ${r.audioSettings}`);
     console.log(`  stop: ${r.stopReason}; ${fmtDur(r.durationS)}; ${r.fileMB} MB (${r.mbPerMin ?? '?'} MB/min); chunks/s ${r.chunkRatio ?? '?'}`);
     console.log(`  chunk gaps: ${r.gaps}${r.gaps ? ` (max ${r.gapMaxMs} ms, ${r.gapsHidden} while hidden)` : ''}; hidden ${fmtDur(r.hiddenS)}`);
     console.log(`  heap MB: first ${r.heapFirst ?? '?'}, max ${r.heapMax ?? '?'}, last ${r.heapLast ?? '?'}; max write ${r.maxWriteMs ?? '?'} ms; min free ${r.minFreeMB ?? '?'} MB`);

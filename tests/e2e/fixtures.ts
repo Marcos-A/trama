@@ -2,6 +2,8 @@
 // guards that fail any test whose page breaks the CSP, throws, or requests another origin.
 
 import { test as base, expect, type Page } from '@playwright/test';
+import { openMeetingTab } from '../helpers/meeting-tab.ts';
+import { launchRealBrowser } from '../helpers/real-browser.ts';
 
 export interface CaptureOptions {
   audio?: boolean;
@@ -73,14 +75,32 @@ export interface OpenOptions extends CaptureOptions {
   query?: string;
   /** Open with `?debug` (log panel, `?quota`). Default true. */
   debug?: boolean;
+  /**
+   * 'real': record a meeting tab through Chrome's own tab capture (tests/helpers/meeting-tab.ts;
+   * the `capture` project), instead of the synthetic stream. Needs `markers`.
+   */
+  capture?: 'synthetic' | 'real';
+  /** With capture 'real': the meeting tab's sound and picture go through a WebRTC call first. */
+  webrtc?: boolean;
 }
 
 export const test = base.extend<{ openApp: (opts?: OpenOptions) => Promise<Page> }>({
+  // The real-capture project (`capture` in playwright.config.ts) records in a browser started as
+  // a user would have it, not one launched by Playwright: tests/helpers/real-browser.ts.
+  context: async ({ context, channel, launchOptions }, use, testInfo) => {
+    if (!testInfo.project.name.includes('capture')) {
+      await use(context);
+      return;
+    }
+    const real = await launchRealBrowser(channel, launchOptions.args ?? []);
+    await use(real.context);
+    await real.close();
+  },
   openApp: async ({ context, baseURL }, use) => {
     const problems: string[] = [];
     const origin = new URL(baseURL!).origin;
     const pages: Page[] = [];
-    await use(async ({ audio = true, width, height, markers, query = '', debug = true } = {}) => {
+    await use(async ({ audio = true, width, height, markers, query = '', debug = true, capture = 'synthetic', webrtc } = {}) => {
       const page = await context.newPage();
       pages.push(page);
       page.on('console', (m) => {
@@ -92,13 +112,14 @@ export const test = base.extend<{ openApp: (opts?: OpenOptions) => Promise<Page>
         if (!url.startsWith(origin) && !url.startsWith('blob:') && !url.startsWith('data:')) problems.push(`request: ${url}`);
       });
       page.on('dialog', (d) => void d.accept());
-      await page.addInitScript(fakeCapture, { audio, width, height, markers });
+      if (capture === 'synthetic') await page.addInitScript(fakeCapture, { audio, width, height, markers });
       const params = new URLSearchParams(query);
       if (debug) params.set('debug', '');
-      await page.goto('/?' + params.toString());
+      await page.goto(new URL('/?' + params.toString(), baseURL).href); // absolute: a CDP-attached context has no baseURL
       // The startup scan of OPFS (tidying repairs, listing leftovers) must finish before a test
       // writes files there itself, or the scan meets half-written files.
       await expect(page.locator('#registre')).toContainText(' leftovers ');
+      if (capture === 'real') await openMeetingTab(page, { markers: markers!, webrtc });
       return page;
     });
     expect(problems, 'CSP violations, page errors or requests to other origins').toEqual([]);

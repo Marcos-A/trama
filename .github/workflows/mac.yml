@@ -6,6 +6,12 @@
 #
 #   gh workflow run mac.yml -f soak_minutes=5     # 8a: e2e suite + 5-minute soak per browser
 #   gh workflow run mac.yml -f soak_minutes=60    # 8c
+#   gh workflow run mac.yml -f soak_minutes=120 -f soak_capture=real -f browsers=chrome
+#                                                 # checks 1, 3, 5b: real tab capture, tabs hidden
+#
+# Every run also has the real-capture tests (tests/capture): Chrome's own tab capture of a
+# meeting tab, through a loopback WebRTC call, in a browser started as a user has it (headed: the
+# runner has a desktop session).
 
 name: Mac browsers
 
@@ -15,6 +21,15 @@ on:
       soak_minutes:
         description: Soak recording length in minutes (0 runs only the e2e suite)
         default: '5'
+        required: true
+      soak_capture:
+        description: Soak source, synthetic (inside Trama's page) or real (tab capture of a meeting tab, hidden throughout)
+        type: choice
+        options: [synthetic, real]
+        default: synthetic
+      capture_hidden_s:
+        description: Seconds the tabs stay hidden in the real-capture e2e test (over 300 reaches intensive throttling)
+        default: '360'
         required: true
       browsers:
         description: Comma-separated Playwright channels
@@ -49,6 +64,8 @@ jobs:
           CI: '1'
           MAC_BROWSERS: ${{ inputs.browsers || 'chrome,msedge' }}
           SOAK_MINUTES: ${{ inputs.soak_minutes }}
+          SOAK_CAPTURE: ${{ inputs.soak_capture }}
+          CAPTURE_HIDDEN_S: ${{ inputs.capture_hidden_s }}
       - name: Keep results
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,5 +73,5 @@ jobs:
           name: mac-results
           path: |
             test-results/
-            !test-results/**/*.mp4
+            !test-results/**/soak.mp4
           retention-days: 14
