@@ -5,6 +5,10 @@
 //
 //   SOAK_MINUTES=120 bash scripts/test.sh --project=soak
 //
+// It also looks for clicks in the audio (tests/helpers/clicks.ts) and, on macOS, requires AAC and
+// has AVFoundation (QuickTime's framework) decode the MP4 to the end: the Mac re-checks of 8a
+// (SOAK_MINUTES=5) and 8c (60), run by .github/workflows/mac.yml in installed Chrome and Edge.
+//
 // Headless Chromium is never throttled like a hidden tab on a Mac, so this does not replace
 // check 3; it shows that Trama itself holds up over the length of a meeting.
 //
@@ -17,18 +21,17 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expectInSync, expectMp4MatchesWebm, measureSync } from '../helpers/av-sync.ts';
+import { avfoundationCheck, expectPlaysInQuickTime, onMac, saveOpfsFile } from '../helpers/avfoundation.ts';
+import { expectNoClicks, findClicks } from '../helpers/clicks.ts';
 import { expect, fakeSavePicker, opfsFiles, playerReady, record, test as base } from '../e2e/fixtures.ts';
 
 // A normal browser profile on disk instead of Playwright's default private-mode context, whose
 // small storage quota fits a 2-hour recording but not the second copy the repair needs.
 const test = base.extend({
-  context: async ({ playwright, baseURL }, use) => {
+  context: async ({ playwright, baseURL, channel, headless, launchOptions }, use) => {
     const dir = mkdtempSync(join(tmpdir(), 'trama-soak-'));
-    const context = await playwright.chromium.launchPersistentContext(dir, {
-      baseURL,
-      acceptDownloads: true,
-      args: ['--autoplay-policy=no-user-gesture-required'],
-    });
+    // Same browser as the project (bundled Chromium, or installed Chrome or Edge on macOS).
+    const context = await playwright.chromium.launchPersistentContext(dir, { ...launchOptions, channel, headless, baseURL, acceptDownloads: true });
     await use(context);
     await context.close();
     rmSync(dir, { recursive: true, force: true });
@@ -126,6 +129,17 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   step('measuring MP4 sync');
   const mp4Sync = await measureSync(page, 'picked', 'soak.mp4', PERIOD_S, { from: webmSync });
 
+  step('looking for clicks');
+  const webmClicks = await findClicks(page, 'recordings', webm.name);
+  const mp4Clicks = await findClicks(page, 'picked', 'soak.mp4');
+  let quicktime = null;
+  if (onMac) {
+    step('decoding the MP4 with AVFoundation');
+    const path = test.info().outputPath('soak.mp4');
+    await saveOpfsFile(page, 'picked', 'soak.mp4', path);
+    quicktime = avfoundationCheck(path);
+  }
+
   step('reading the log');
   // The on-page log keeps only the last 300 lines; the downloaded JSON has every entry.
   await page.click('#panell-registre summary');
@@ -145,6 +159,8 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
     maxWriteMs: Math.max(...entries.filter((e) => e.ev === 'sample').map((e) => e.data!.maxWriteMs as number)),
     repair: one('repair'),
     webm: { bytes: webm.size, playerDuration: player.duration, seeks: webmSeek.seeks, syncMs: offsets(webmSync), audioClockSkew: webmSync.audioClockSkew },
+    clicks: { webm: webmClicks, mp4: mp4Clicks },
+    quicktime,
     mp4: { ...one('mp4'), heap: mp4Samples.length ? heapTrend(mp4Samples) : null, seeks: mp4Seek.seeks, syncMs: offsets(mp4Sync), audioClockSkew: mp4Sync.audioClockSkew },
   };
   writeFileSync(test.info().outputPath('soak-summary.json'), JSON.stringify(summary, null, 2));
@@ -165,4 +181,11 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   expectInSync(webmSync, minMarkers);
   expectInSync(mp4Sync, minMarkers);
   expectMp4MatchesWebm(mp4Sync, webmSync);
+  const minEdges = 2 * minMarkers;
+  expectNoClicks(webmClicks, minEdges);
+  expectNoClicks(mp4Clicks, minEdges);
+  if (onMac) {
+    expect(summary.mp4).toMatchObject({ audioCodec: 'aac' });
+    expectPlaysInQuickTime(quicktime!, webmSync.durationS);
+  }
 });

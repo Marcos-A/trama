@@ -1,0 +1,61 @@
+# Browser tests on macOS in the installed Chrome and Edge, where the MP4's audio is AAC from the
+# platform encoder (the server's Chromium has none). Automates the Mac re-checks of 8a and 8c in
+# docs/manual-tests.md with the synthetic stream: sync, clicks, and AVFoundation (QuickTime's
+# framework) decoding the MP4. Manual only: macOS minutes count ten times on a private repo.
+#
+#   gh workflow run mac.yml -f soak_minutes=5     # 8a: e2e suite + 5-minute soak per browser
+#   gh workflow run mac.yml -f soak_minutes=60    # 8c
+
+name: Mac browsers
+
+on:
+  workflow_dispatch:
+    inputs:
+      soak_minutes:
+        description: Soak recording length in minutes (0 runs only the e2e suite)
+        default: '5'
+        required: true
+      browsers:
+        description: Comma-separated Playwright channels
+        default: chrome,msedge
+        required: true
+  push:
+    branches: [mac-ci] # first runs, before the workflow is on main; remove when merging
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    runs-on: macos-15
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Type check
+        run: npx tsc --noEmit && npx tsc --noEmit -p tests
+      - name: Versions
+        run: |
+          sw_vers
+          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --version || true
+          "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" --version || true
+          swift --version
+      - name: Browser tests
+        run: npx playwright test
+        env:
+          CI: '1'
+          MAC_BROWSERS: ${{ inputs.browsers || 'chrome,msedge' }}
+          SOAK_MINUTES: ${{ inputs.soak_minutes || '5' }}
+      - name: Keep results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-results
+          path: |
+            test-results/
+            !test-results/**/*.mp4
+          retention-days: 14

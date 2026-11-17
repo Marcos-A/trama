@@ -5,6 +5,10 @@ import { defineConfig } from '@playwright/test';
 // SOAK_MINUTES set. Run through scripts/test.sh, which
 // uses the Playwright Docker image pinned to the same version as @playwright/test.
 // The app is served by `vite preview`, which sends the production CSP and Permissions-Policy.
+//
+// On macOS (.github/workflows/mac.yml), MAC_BROWSERS=chrome,msedge replaces all of that with the
+// browser tests in the installed Chrome and Edge, where MP4 audio is AAC from the platform
+// encoder, plus the soak test when SOAK_MINUTES is set.
 
 const PORT = 4173;
 
@@ -15,24 +19,35 @@ const chromium = {
   acceptDownloads: true,
 };
 
+const soak = !!Number(process.env.SOAK_MINUTES);
+const macBrowsers = (process.env.MAC_BROWSERS ?? '').split(',').map((b) => b.trim()).filter(Boolean);
+
+const serverProjects = [
+  { name: 'unit', testMatch: 'unit/**/*.spec.ts' },
+  { name: 'chromium', testMatch: 'e2e/**/*.spec.ts', use: chromium },
+  ...(['firefox', 'webkit'] as const).map((browserName) => ({
+    name: browserName,
+    testMatch: 'other-browsers/**/*.spec.ts',
+    use: { browserName, baseURL: `http://127.0.0.1:${PORT}` },
+  })),
+  // Long synthetic recording; only with SOAK_MINUTES set (see tests/soak/soak.spec.ts).
+  ...(soak ? [{ name: 'soak', testMatch: 'soak/**/*.spec.ts', use: chromium }] : []),
+];
+
+const macProjects = macBrowsers.map((channel) => ({
+  name: `mac-${channel}`,
+  testMatch: soak ? ['e2e/**/*.spec.ts', 'soak/**/*.spec.ts'] : 'e2e/**/*.spec.ts',
+  use: { ...chromium, channel },
+}));
+
 export default defineConfig({
   testDir: 'tests',
   timeout: 60_000,
   fullyParallel: false,
-  workers: 2, // the server is shared with other projects; keep the load modest
+  workers: 2, // the server is shared with other projects; keep the load modest (on macOS, one per browser)
   reporter: [['list']],
   forbidOnly: !!process.env.CI,
-  projects: [
-    { name: 'unit', testMatch: 'unit/**/*.spec.ts' },
-    { name: 'chromium', testMatch: 'e2e/**/*.spec.ts', use: chromium },
-    ...(['firefox', 'webkit'] as const).map((browserName) => ({
-      name: browserName,
-      testMatch: 'other-browsers/**/*.spec.ts',
-      use: { browserName, baseURL: `http://127.0.0.1:${PORT}` },
-    })),
-    // Long synthetic recording; only with SOAK_MINUTES set (see tests/soak/soak.spec.ts).
-    ...(process.env.SOAK_MINUTES ? [{ name: 'soak', testMatch: 'soak/**/*.spec.ts', use: chromium }] : []),
-  ],
+  projects: macProjects.length ? macProjects : serverProjects,
   webServer: {
     command: `npx vite build && npx vite preview --host 127.0.0.1 --port ${PORT} --strictPort`,
     url: `http://127.0.0.1:${PORT}/`,

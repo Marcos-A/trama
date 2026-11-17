@@ -21,7 +21,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
 
-const MEDIABUNNY_URL = '/__test__/mediabunny.mjs';
+export const MEDIABUNNY_URL = '/__test__/mediabunny.mjs';
 const ANALYSIS_PAGE = '/__test__/analyse.html';
 
 export interface Marker {
@@ -46,7 +46,7 @@ export interface SyncReport {
  * A blank page on the app's origin (so it sees the same OPFS) but without the app's CSP, which
  * would block the worker Mediabunny starts, plus Mediabunny itself. Both are test-only routes.
  */
-async function openAnalysisPage(app: Page): Promise<Page> {
+export async function openAnalysisPage(app: Page): Promise<Page> {
   const context = app.context();
   const mediabunny = readFileSync('node_modules/mediabunny/dist/bundles/mediabunny.min.mjs'); // tests run from the repo root
   await context.route(`**${MEDIABUNNY_URL}`, (r) => r.fulfill({ body: mediabunny, contentType: 'text/javascript' }));
