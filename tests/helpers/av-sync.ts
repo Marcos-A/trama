@@ -3,14 +3,20 @@
 // white with when the beep starts. Positive offset = picture after sound.
 //
 // Two clocks are involved. The beeps are `periodS` apart in audio samples. Chrome's WebM stamps
-// audio and video with capture (wall-clock) time, so in the WebM the beeps are `periodS` apart
-// only if the audio clock keeps time with the system clock; the flashes, timed on the audio
-// clock, follow them, and picture and sound stay together either way. The MP4 conversion
-// re-encodes the audio back to back, so in the MP4 the beeps are exactly `periodS` apart while
-// the picture keeps the WebM's frame times: any skew between the clocks becomes drift. Headless
-// Chromium's fake audio device runs 0.1–3 % slow, so its MP4s drift a lot; on a Mac the clocks
-// agree closely (a 2.5 h MP4 stayed in sync, manual check 8c). Hence the MP4 is checked against
-// the WebM (`expectMp4MatchesWebm`), not on its own.
+// each audio packet and video frame with capture (wall-clock) time, so in the WebM the beeps are
+// `periodS` apart only if the audio clock keeps time with the system clock; the flashes, timed
+// on the audio clock, follow them, and picture and sound stay together either way. Headless
+// Chromium's fake audio device runs 0.1–3 % slow, so the difference is large here; on a Mac the
+// clocks agree closely.
+//
+// Decoding loses the packet stamps (the decoder and Mediabunny count samples, and Mediabunny
+// only re-syncs once it is a whole packet, 60 ms, off), so WebM beeps are timed here from the
+// packets themselves: each window is decoded with WebCodecs and every decoded packet placed at
+// its own timestamp. The MP4's audio is contiguous, so its decoded timing is its packet timing.
+//
+// The MP4 conversion puts the audio back on the WebM's recorded timeline (src/media/
+// audio-retime.ts), so the MP4 must be in sync on its own (`expectInSync`) and its beeps must
+// sit at the WebM's beep times (`expectMp4MatchesWebm`).
 
 import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
@@ -52,8 +58,8 @@ async function openAnalysisPage(app: Page): Promise<Page> {
 
 /**
  * `dir/name` in OPFS, with markers every `periodS` s; checks at most `maxMarkers`, spread evenly.
- * With `from` (the WebM's report, when measuring its MP4), looks for the same markers: each
- * flash where the WebM had it, each beep exactly k periods after the first.
+ * With `from` (the WebM's report, when measuring its MP4), looks for the same markers where the
+ * WebM had them.
  */
 export async function measureSync(
   app: Page,
@@ -70,19 +76,55 @@ export async function measureSync(
       const file = await (await (await root.getDirectoryHandle(dir)).getFileHandle(name)).getFile();
       const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
       const durationS: number = await input.computeDuration();
-      const audio = new mb.AudioBufferSink(await input.getPrimaryAudioTrack());
+      const audioTrack = await input.getPrimaryAudioTrack();
+      const audio = new mb.AudioBufferSink(audioTrack);
+      const packetTimed = (await input.getFormat()) instanceof mb.MatroskaInputFormat;
       const video = new mb.CanvasSink(await input.getPrimaryVideoTrack(), { width: 32, height: 18, fit: 'fill', poolSize: 2 });
       const half = periodS / 2 - 0.3; // search window around each expected marker
+
+      // Channel 0 of [from, to), as chunks placed at their packet's timestamp (WebM) or at their
+      // decoded timestamp (MP4). The WebM window starts a few packets early to warm the decoder.
+      async function* chunks(from: number, to: number): AsyncGenerator<{ data: Float32Array; timestamp: number; sampleRate: number }> {
+        if (!packetTimed) {
+          for await (const { buffer, timestamp } of audio.buffers(Math.max(0, from), to)) {
+            yield { data: buffer.getChannelData(0), timestamp, sampleRate: buffer.sampleRate };
+          }
+          return;
+        }
+        const sink = new mb.EncodedPacketSink(audioTrack);
+        const first = (await sink.getPacket(Math.max(0, from - 0.2))) ?? (await sink.getFirstPacket());
+        const stamps: number[] = [];
+        const decoded: AudioData[] = [];
+        let failed: unknown = null;
+        const decoder = new AudioDecoder({ output: (d) => decoded.push(d), error: (e) => (failed = e) });
+        decoder.configure(await audioTrack.getDecoderConfig());
+        for await (const p of sink.packets(first)) {
+          if (p.timestamp >= to) break;
+          stamps.push(p.timestamp);
+          decoder.decode(p.toEncodedAudioChunk());
+        }
+        await decoder.flush();
+        decoder.close();
+        if (failed) throw failed;
+        if (decoded.length !== stamps.length) throw new Error(`${decoded.length} decoded chunks for ${stamps.length} packets`);
+        for (let i = 0; i < decoded.length; i++) {
+          const d = decoded[i];
+          const data = new Float32Array(d.numberOfFrames);
+          d.copyTo(data, { planeIndex: 0, format: 'f32-planar' });
+          const sampleRate = d.sampleRate; // read before close, which zeroes it
+          d.close();
+          yield { data, timestamp: stamps[i], sampleRate };
+        }
+      }
 
       // A beep starts where the level jumps above 0.4 after ≥ 0.1 s below it (the hum is 0.05).
       async function beeps(from: number, to: number): Promise<number[]> {
         const out: number[] = [];
         let lastLoud = -Infinity;
-        for await (const { buffer, timestamp } of audio.buffers(Math.max(0, from), to)) {
-          const ch = buffer.getChannelData(0);
+        for await (const { data: ch, timestamp, sampleRate } of chunks(Math.max(0, from), to)) {
           for (let i = 0; i < ch.length; i++) {
             if (Math.abs(ch[i]) < 0.4) continue;
-            const t = timestamp + i / buffer.sampleRate;
+            const t = timestamp + i / sampleRate;
             if (t - lastLoud > 0.1 && t >= from) out.push(t);
             lastLoud = t;
           }
@@ -111,11 +153,14 @@ export async function measureSync(
         return { k, expectedS: expectedA, audioS: a, videoS: v, offsetS: a === null || v === null ? null : v - a };
       }
 
-      const [a0] = await beeps(0, Math.min(durationS, periodS + 2));
       const markers = [];
       let spacing = periodS;
-      if (a0 !== undefined && from) {
-        for (const w of from.markers) markers.push(await marker(w.k, a0 + w.k * periodS, w.videoS ?? a0 + w.k * periodS));
+      const [a0] = from ? [] : await beeps(0, Math.min(durationS, periodS + 2));
+      if (from) {
+        for (const w of from.markers) markers.push(await marker(w.k, w.audioS ?? w.expectedS, w.videoS ?? w.expectedS));
+        const found = markers.filter((m) => m.audioS !== null);
+        const [f, l] = [found[0], found.at(-1)];
+        if (f && l && l.k > f.k) spacing = (l.audioS! - f.audioS!) / (l.k - f.k);
       } else if (a0 !== undefined) {
         // Follow the beeps' spacing as it is measured, so a skewed clock keeps them in the window.
         const a1 = nearest(await beeps(a0 + periodS - half, a0 + periodS + half), a0 + periodS);
@@ -162,8 +207,8 @@ export function expectInSync(report: SyncReport, minMarkers: number): void {
 
 /**
  * The MP4 against the WebM it came from, marker by marker: each flash at the WebM's time (the
- * picture keeps its timing) and each beep exactly k periods after the first (the audio is all
- * there, nothing lost or repeated). See the note at the top for why not the WebM's beep times.
+ * picture keeps its timing) and each beep at the WebM's time (the audio keeps its recorded
+ * timing, within the converter's 20 ms dead band).
  */
 export function expectMp4MatchesWebm(mp4: SyncReport, webm: SyncReport): void {
   expect(mp4.markers.length, 'markers in the MP4').toBe(webm.markers.length);
@@ -172,6 +217,6 @@ export function expectMp4MatchesWebm(mp4: SyncReport, webm: SyncReport): void {
     expect(m.videoS, `marker ${w.k}: flash found`).not.toBeNull();
     expect(m.audioS, `marker ${w.k}: beep found`).not.toBeNull();
     expect(Math.abs(m.videoS! - w.videoS!), `marker ${w.k}: flash time, MP4 against WebM`).toBeLessThan(0.05);
-    expect(Math.abs(m.audioS! - m.expectedS), `marker ${w.k}: beep time, k periods after the first`).toBeLessThan(0.03);
+    expect(Math.abs(m.audioS! - w.audioS!), `marker ${w.k}: beep time, MP4 against WebM`).toBeLessThan(0.035);
   });
 }

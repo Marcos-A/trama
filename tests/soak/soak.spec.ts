@@ -8,8 +8,9 @@
 // Headless Chromium is never throttled like a hidden tab on a Mac, so this does not replace
 // check 3; it shows that Trama itself holds up over the length of a meeting.
 //
-// The MP4's sound is checked against the WebM, not on its own: headless Chromium's audio clock
-// runs slow, which the MP4 turns into drift (see tests/helpers/av-sync.ts).
+// Headless Chromium's audio clock runs slow; the MP4 has to keep the WebM's recorded audio timing
+// regardless, so it is checked in sync on its own and marker by marker against the WebM (see
+// tests/helpers/av-sync.ts). The summary has the converter's corrections (`mp4.audioRetime`).
 
 import type { Page } from '@playwright/test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -144,7 +145,7 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
     maxWriteMs: Math.max(...entries.filter((e) => e.ev === 'sample').map((e) => e.data!.maxWriteMs as number)),
     repair: one('repair'),
     webm: { bytes: webm.size, playerDuration: player.duration, seeks: webmSeek.seeks, syncMs: offsets(webmSync), audioClockSkew: webmSync.audioClockSkew },
-    mp4: { ...one('mp4'), heap: mp4Samples.length ? heapTrend(mp4Samples) : null, seeks: mp4Seek.seeks, syncMs: offsets(mp4Sync) },
+    mp4: { ...one('mp4'), heap: mp4Samples.length ? heapTrend(mp4Samples) : null, seeks: mp4Seek.seeks, syncMs: offsets(mp4Sync), audioClockSkew: mp4Sync.audioClockSkew },
   };
   writeFileSync(test.info().outputPath('soak-summary.json'), JSON.stringify(summary, null, 2));
   writeFileSync(test.info().outputPath('soak-log.json'), JSON.stringify(entries, null, 2));
@@ -162,5 +163,6 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   if (summary.mp4.heap) expect(summary.mp4.heap.max - summary.mp4.heap.first, 'heap growth while converting (MB)').toBeLessThan(20);
   const minMarkers = Math.min(25, Math.floor(seconds / PERIOD_S) - 1);
   expectInSync(webmSync, minMarkers);
+  expectInSync(mp4Sync, minMarkers);
   expectMp4MatchesWebm(mp4Sync, webmSync);
 });

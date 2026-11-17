@@ -63,8 +63,8 @@ add server-side processing, but each one needs its own consent and data-handling
   to demux the WebM and mux the MP4. Video: H.264 at the recording's size (even-rounded; later
   frames of a resized tab are letterboxed into it), medium quality, keyframe every 5 s. Audio:
   AAC from the platform encoder (Chrome/Edge on macOS and Windows); where there is none (Linux
-  Chromium, so also the test suite) the Opus packets are copied into the MP4 and the user is
-  told QuickTime may not play it. No WebAssembly (Mediabunny's AAC extension would need
+  Chromium, so also the test suite) it is re-encoded to Opus and the user is told QuickTime may
+  not play it. No WebAssembly (Mediabunny's AAC extension would need
   `'wasm-unsafe-eval'`), so the CSP is unchanged.
   - With the save dialog, the location is chosen first (the click still counts as a gesture)
     and the worker writes straight to it, so no second copy in OPFS; without it, the MP4 is
@@ -73,6 +73,14 @@ add server-side processing, but each one needs its own consent and data-handling
     (Mediabunny closes its stream on cancel, which would commit a partial file, so it writes
     through a wrapper with no `close`) and removes the empty file the dialog created.
   - moov at the end (no fast start): one streaming pass, little memory, fine for local files.
+  - Audio timing (`src/media/audio-retime.ts`, 2026-11-16): the WebM stamps each 60 ms Opus
+    packet with capture time, but decoding and re-encoding lay the audio back to back, so the
+    MP4 drifted by any difference between the tab's audio clock and the system clock. The
+    converter now reads the packet stamps alongside the conversion and, in Mediabunny's
+    `audio.process` hook, inserts silence or drops audio whenever the output is more than 20 ms
+    off the recorded time (2.5 ms fades at each cut). Pad and trim rather than resampling:
+    the real-world case is gaps, where silence is right, and Mac clock skew is too small to
+    need correcting more than every few minutes.
   - Chrome's MediaRecorder marks the track `AlphaMode=1` when the source frames have alpha (the
     test canvas does). Mediabunny would then merge alpha in a `blob:` worker, which
     `worker-src 'self'` blocks, so the header is read with AlphaMode as 0
@@ -133,7 +141,8 @@ resources.
   tests (`tests/e2e`, including MP4 conversion with the download fallback, a stubbed save
   dialog, cancel and no-audio; H.264 + Opus, since Linux Chromium has no AAC encoder) in the Playwright image, with `--network none`; every browser test also
   fails on a CSP violation or a request to another origin. A/V sync is measured on flash-and-beep
-  markers in the synthetic stream, decoded with Mediabunny (`tests/e2e/sync.spec.ts`); the soak
+  markers in the synthetic stream, decoded with Mediabunny (`tests/e2e/sync.spec.ts`; the MP4
+  must be in sync on its own and match the WebM's marker times); the soak
   test (`tests/soak`, `SOAK_MINUTES=120`) runs the same checks plus heap, gaps, repair, seeking
   and MP4 over a long recording. Headless Firefox and WebKit only check that recording is
   disabled there (`tests/other-browsers`).

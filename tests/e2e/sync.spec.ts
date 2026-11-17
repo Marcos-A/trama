@@ -24,6 +24,7 @@ test('picture and sound stay in sync in the WebM, and the MP4 keeps its timing',
   await expect(page.locator('#missatge')).toContainText('Vídeo desat en MP4', { timeout: 120_000 });
   const fromMp4 = await measureSync(page, 'picked', 'sync.mp4', PERIOD_S, { from: fromWebm });
   test.info().annotations.push({ type: 'mp4 sync', description: JSON.stringify(fromMp4) });
-  // The MP4 is checked against the WebM, not on its own: see tests/helpers/av-sync.ts.
+  // In sync on its own, and with the WebM's timing: see tests/helpers/av-sync.ts.
+  expectInSync(fromMp4, 5);
   expectMp4MatchesWebm(fromMp4, fromWebm);
 });

@@ -15,8 +15,11 @@
 // (src/media/webm-alpha.ts) and the alpha planes are ignored.
 //
 // Audio: AAC when the browser can encode it (Chrome and Edge on macOS and Windows use the
-// platform encoder); otherwise the Opus packets are copied into the MP4 as they are, which
-// browsers and VLC play but QuickTime may not. The caller is told which one it got.
+// platform encoder); otherwise Opus (Linux), which browsers and VLC play but QuickTime may not.
+// The caller is told which one it got. Either way the audio is decoded and re-encoded, and on
+// the way it is put back on the WebM's recorded timeline (src/media/audio-retime.ts): silence
+// where the recording has a gap or its audio clock ran slow, frames dropped where it ran fast,
+// so the MP4 stays in sync with the picture as the WebM does.
 
 import {
   Conversion,
@@ -32,6 +35,7 @@ import {
   canEncodeAudio,
   canEncodeVideo,
 } from 'mediabunny';
+import { retimer, trackTimeline, type RetimeStats } from './audio-retime.ts';
 import { alphaModeOffsets } from './webm-alpha.ts';
 
 export interface Mp4Result {
@@ -40,6 +44,8 @@ export interface Mp4Result {
   height: number;
   /** 'aac', or 'opus' when the browser has no AAC encoder; null for a recording without sound. */
   audioCodec: 'aac' | 'opus' | null;
+  /** How far the audio was moved to keep to its recorded timing; null without sound. */
+  audioRetime: RetimeStats | null;
 }
 
 export interface Mp4Options {
@@ -88,6 +94,12 @@ export async function convertWebmToMp4(
       audioCodec = aac ? 'aac' : 'opus';
     }
 
+    // The conversion's start, worked out as Conversion does without `trim`, and passed to it
+    // explicitly so the audio's recorded times and the output timeline share one origin.
+    const startS = Math.max(await input.getFirstTimestamp(audio ? [video, audio] : [video]), 0);
+    const timeline = audio ? await trackTimeline(audio) : null;
+    const retime = timeline ? retimer(timeline, startS) : null;
+
     const output = new Output({
       format: new Mp4OutputFormat({ fastStart: false }),
       target: new StreamTarget(
@@ -100,7 +112,11 @@ export async function convertWebmToMp4(
       output,
       tracks: 'primary',
       video: { codec: 'avc', width, height, fit: 'contain', quality: QUALITY_MEDIUM, forceTranscode: true },
-      audio: audioCodec ? { codec: audioCodec, quality: QUALITY_MEDIUM } : { discard: true },
+      audio:
+        audioCodec && retime
+          ? { codec: audioCodec, quality: QUALITY_MEDIUM, forceTranscode: true, process: retime.process }
+          : { discard: true },
+      trim: { start: startS },
       showWarnings: false,
     });
     if (!conversion.isValid || conversion.discardedTracks.some((d) => d.reason !== 'discarded_by_user')) {
@@ -116,9 +132,10 @@ export async function convertWebmToMp4(
       await conversion.execute();
     } finally {
       signal?.removeEventListener('abort', onAbort);
+      timeline?.close();
     }
 
-    return { durationS: await input.computeDuration(), width, height, audioCodec };
+    return { durationS: await input.computeDuration(), width, height, audioCodec, audioRetime: retime?.stats ?? null };
   } finally {
     input.dispose();
   }
