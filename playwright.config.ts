@@ -57,21 +57,26 @@ const serverProjects = [
 ];
 
 // The CI VM's hardware video encoder and decoder fail now and then (EncodingError); a retry is
-// reported as flaky, not hidden.
-const macProjects = macBrowsers.flatMap((channel) => [
-  {
-    name: `mac-${channel}`,
-    testMatch: soak && !soakReal ? ['e2e/**/*.spec.ts', 'soak/**/*.spec.ts'] : 'e2e/**/*.spec.ts',
-    use: { ...chromium, channel },
-    retries: 1,
-  },
-  {
-    name: `mac-${channel}-capture`,
-    testMatch: soak && soakReal ? ['capture/**/*.spec.ts', 'soak/**/*.spec.ts'] : 'capture/**/*.spec.ts',
-    use: { ...realCapture, channel },
-    retries: 1,
-  },
-]);
+// reported as flaky, not hidden. MAC_SUITE picks one of two runs, which the workflow keeps apart
+// so the headed real-capture browsers never load the VM while the other tests run:
+// 'synthetic' (e2e, plus the synthetic soak) or 'capture' (tests/capture, plus the soak with
+// SOAK_CAPTURE=real), the latter one browser at a time.
+const macSuite = process.env.MAC_SUITE === 'capture' ? 'capture' : 'synthetic';
+const macProjects = macBrowsers.map((channel) =>
+  macSuite === 'synthetic'
+    ? {
+        name: `mac-${channel}`,
+        testMatch: soak && !soakReal ? ['e2e/**/*.spec.ts', 'soak/**/*.spec.ts'] : 'e2e/**/*.spec.ts',
+        use: { ...chromium, channel },
+        retries: 1,
+      }
+    : {
+        name: `mac-${channel}-capture`,
+        testMatch: soak && soakReal ? ['capture/**/*.spec.ts', 'soak/**/*.spec.ts'] : 'capture/**/*.spec.ts',
+        use: { ...realCapture, channel },
+        retries: 1,
+      },
+);
 
 export default defineConfig({
   testDir: 'tests',

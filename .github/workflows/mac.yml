@@ -62,6 +62,18 @@ jobs:
         run: npx playwright test
         env:
           CI: '1'
+          MAC_SUITE: synthetic
+          MAC_BROWSERS: ${{ inputs.browsers || 'chrome,msedge' }}
+          SOAK_MINUTES: ${{ inputs.soak_minutes }}
+          SOAK_CAPTURE: ${{ inputs.soak_capture }}
+      # Headed browsers capturing a tab: one at a time, after the rest, so neither run loads the
+      # VM for the other.
+      - name: Real-capture tests
+        if: ${{ !cancelled() }}
+        run: npx playwright test --workers=1 --output=test-results-capture
+        env:
+          CI: '1'
+          MAC_SUITE: capture
           MAC_BROWSERS: ${{ inputs.browsers || 'chrome,msedge' }}
           SOAK_MINUTES: ${{ inputs.soak_minutes }}
           SOAK_CAPTURE: ${{ inputs.soak_capture }}
@@ -73,5 +85,6 @@ jobs:
           name: mac-results
           path: |
             test-results/
-            !test-results/**/soak.mp4
+            test-results-capture/
+            !test-results*/**/soak.mp4
           retention-days: 14
