@@ -38,6 +38,9 @@ const macProjects = macBrowsers.map((channel) => ({
   name: `mac-${channel}`,
   testMatch: soak ? ['e2e/**/*.spec.ts', 'soak/**/*.spec.ts'] : 'e2e/**/*.spec.ts',
   use: { ...chromium, channel },
+  // The CI VM's hardware video encoder and decoder fail now and then (EncodingError); a retry is
+  // reported as flaky, not hidden.
+  retries: 1,
 }));
 
 export default defineConfig({

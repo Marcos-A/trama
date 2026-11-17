@@ -79,7 +79,15 @@ export async function measureSync(
       const audioTrack = await input.getPrimaryAudioTrack();
       const audio = new mb.AudioBufferSink(audioTrack);
       const packetTimed = (await input.getFormat()) instanceof mb.MatroskaInputFormat;
-      const video = new mb.CanvasSink(await input.getPrimaryVideoTrack(), { width: 32, height: 18, fit: 'fill', poolSize: 2 });
+      // Software decoding: the macOS CI VM's hardware decoder fails or hangs now and then, and the
+      // analysis only needs frame times and brightness.
+      const video = new mb.CanvasSink(await input.getPrimaryVideoTrack(), {
+        width: 32,
+        height: 18,
+        fit: 'fill',
+        poolSize: 2,
+        decoderOptions: { hardwareAcceleration: 'prefer-software' },
+      });
       const half = periodS / 2 - 0.3; // search window around each expected marker
 
       // Channel 0 of [from, to), as chunks placed at their packet's timestamp (WebM) or at their
