@@ -141,3 +141,13 @@ test('start offset: the output timeline starts at the conversion start', async (
   const r = await run(packets(10, (i) => 5 + 0.03 + i * 0.06), 5);
   expect(r.timestamps[0].t).toBeCloseTo(0.03, 9);
 });
+
+test('AAC priming: a start past the first packet puts the audio before zero, then contiguous', async () => {
+  // The converter passes startS + 2112 frames on the AAC path, so the encoder's priming falls
+  // before zero and the MP4 gets an edit list that skips it.
+  const priming = 2112 / SR;
+  const r = await run(packets(20, (i) => (i * N) / SR), priming);
+  expect(r.timestamps[0].t).toBeCloseTo(-priming, 6);
+  expect(r.stats).toEqual({ paddedS: 0, pads: 0, trimmedS: 0, trims: 0 });
+  expectContinuous(r);
+});

@@ -20,6 +20,13 @@
 // the way it is put back on the WebM's recorded timeline (src/media/audio-retime.ts): silence
 // where the recording has a gap or its audio clock ran slow, frames dropped where it ran fast,
 // so the MP4 stays in sync with the picture as the WebM does.
+//
+// AAC priming: an AAC encoder starts its output with 2112 frames of delay (the "priming"), so a
+// sound fed in at 0 s comes out 44 ms (at 48 kHz) into the track. The audio is therefore placed
+// that much earlier, starting before zero; Mediabunny turns the negative start into an edit list
+// (elst) that tells players to skip the priming, as QuickTime and browsers do. Measured on macOS
+// in Chrome and Edge (.github/workflows/mac.yml): without this the MP4's sound ran a constant
+// 41–47 ms late. 2112 is Apple's AAC encoder delay; other platforms' encoders are untested.
 
 import {
   Conversion,
@@ -47,6 +54,9 @@ export interface Mp4Result {
   /** How far the audio was moved to keep to its recorded timing; null without sound. */
   audioRetime: RetimeStats | null;
 }
+
+/** AAC encoder delay in frames (Apple's AudioToolbox, used by Chrome and Edge on macOS). */
+export const AAC_PRIMING_FRAMES = 2112;
 
 export interface Mp4Options {
   onProgress?: (fraction: number) => void;
@@ -98,7 +108,9 @@ export async function convertWebmToMp4(
     // explicitly so the audio's recorded times and the output timeline share one origin.
     const startS = Math.max(await input.getFirstTimestamp(audio ? [video, audio] : [video]), 0);
     const timeline = audio ? await trackTimeline(audio) : null;
-    const retime = timeline ? retimer(timeline, startS) : null;
+    // AAC: start the audio one encoder delay early, so the priming falls before zero (see above).
+    const primingS = audio && audioCodec === 'aac' ? AAC_PRIMING_FRAMES / audio.sampleRate : 0;
+    const retime = timeline ? retimer(timeline, startS + primingS) : null;
 
     const output = new Output({
       format: new Mp4OutputFormat({ fastStart: false }),
