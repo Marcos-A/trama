@@ -12,9 +12,27 @@
 // runs slow, which the MP4 turns into drift (see tests/helpers/av-sync.ts).
 
 import type { Page } from '@playwright/test';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { expectInSync, expectMp4MatchesWebm, measureSync } from '../helpers/av-sync.ts';
-import { expect, fakeSavePicker, opfsFiles, playerReady, record, test } from '../e2e/fixtures.ts';
+import { expect, fakeSavePicker, opfsFiles, playerReady, record, test as base } from '../e2e/fixtures.ts';
+
+// A normal browser profile on disk instead of Playwright's default private-mode context, whose
+// small storage quota fits a 2-hour recording but not the second copy the repair needs.
+const test = base.extend({
+  context: async ({ playwright, baseURL }, use) => {
+    const dir = mkdtempSync(join(tmpdir(), 'trama-soak-'));
+    const context = await playwright.chromium.launchPersistentContext(dir, {
+      baseURL,
+      acceptDownloads: true,
+      args: ['--autoplay-policy=no-user-gesture-required'],
+    });
+    await use(context);
+    await context.close();
+    rmSync(dir, { recursive: true, force: true });
+  },
+});
 
 const MINUTES = Number(process.env.SOAK_MINUTES);
 const PERIOD_S = 10;
@@ -88,6 +106,7 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   step('stopping');
   await page.click('#atura');
   await expect(page.locator('#vista-desat')).toBeVisible({ timeout: 900_000 });
+  await expect(page.locator('main'), 'repair skipped for lack of space').not.toContainText('No hi ha prou espai');
   step('saved; checking the player');
   const player = await playerReady(page);
   const [webm] = await opfsFiles(page);
@@ -118,6 +137,7 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
 
   const summary = {
     minutes: MINUTES,
+    storageAtStart: one('storage'),
     stopped: one('recording-stopped'),
     badEvents: entries.filter((e) => BAD_EVENTS.includes(e.ev)),
     heap: heapTrend(samples),

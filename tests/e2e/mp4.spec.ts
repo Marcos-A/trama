@@ -126,7 +126,8 @@ test('cancelling the MP4 conversion leaves no file and returns to the recording'
   await stopAndWaitSaved(page);
   await fakeSavePicker(page);
   await page.click('#desa-mp4');
-  await page.waitForFunction(() => document.querySelector<HTMLProgressElement>('#progres-mp4')!.value > 0);
+  // At least 1 %: the log rounds progress to 0.001, so cancelling on the very first tick can log 0.
+  await page.waitForFunction(() => document.querySelector<HTMLProgressElement>('#progres-mp4')!.value >= 0.01);
   await page.click('#cancella-mp4');
   await expect(page.locator('#missatge')).toContainText('Conversió cancel·lada', { timeout: 30_000 });
   await expect(page.locator('#vista-desat')).toBeVisible();

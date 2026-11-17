@@ -26,7 +26,9 @@ real Teams capture.
 Soak test: `SOAK_MINUTES=120 bash scripts/test.sh --project=soak --output=soak-results`
 records that long with markers every 10 s, then checks the full log (no `chunk-gap`,
 silence, track or write errors; heap flat), the repaired WebM (duration, seeks to the middle
-and end, sync at 25 markers) and its MP4 (seeks, picture and sound timing against the WebM).
+and end, sync at 25 markers: each within 0.15 s, no drift between the first and last five) and
+its MP4 (seeks, picture and sound timing against the WebM). It runs in a normal browser profile,
+since Playwright's default private-mode context has too little storage for the repair's copy.
 `soak-results/` keeps `soak-summary.json`, `soak-sync.json` and the full log. It occupies the
 shared server for the whole run; avoid running it next to other projects' browser suites.
 Headless Chromium is never throttled like a hidden tab on a Mac, so it does not replace check 3.
@@ -130,6 +132,7 @@ runs; the extension and native options are out of scope (PLAN §7).
 | 2026-11-15 | Edge 157 | Tahoe 26.7.3 | 8c | Pass (background only ~40 s) | 2 h 28 min 56 s recording: 2.82 GB WebM, heap 5–7 MB and `maxWriteMs` ≤ 19 throughout, repair 5.9 s. MP4 801 MB (0.28×) in 559 s (~16× real time), AAC, 1072×1790; `mp4.durationS` 8,936.33 s against repaired 8,936.38 s. In QuickTime: sound, moving image, seeks, A/V in sync at the end. Tab hidden for only ~40 s of the conversion; no heap figures during conversion (logged since as `mp4-sample`). Found: the WebM save (12 s) and the MP4 conversion ran at once, and the WebM's "Vídeo desat" message appeared over the conversion; fixed by disabling the other actions while saving. |
 | 2026-11-15 | Edge 157 | Tahoe 26.7.3 | 8c (background) | Pass | Preview b2c4966. 35 min 33 s recording, 1608×2684 with motion: WebM 616 MB, heap 5–7 MB, repair 1.2 s. Tab hidden for the whole conversion (all 9 `mp4-sample` during it `hidden: true`); progress a steady ~10.5 % per 30 s, so no background throttling. MP4 450 MB (0.73×) in 281 s (~7.6× real time; the 2 h 29 min run was 16× at 2.25× fewer pixels), AAC; `mp4.durationS` 2,133.18 s against repaired 2,133.28 s. Page heap 5–7 MB during conversion; `workerHeapMB` absent (Edge reports no heap in workers), so converter memory isn't logged. In QuickTime: sound, A/V in sync in the last minutes, matches the WebM. |
 | 2026-11-15 | Edge 157 | Tahoe 26.7.3 | 8d | Pass | 5 min 17 s, portrait tab 1608×2684 with motion: WebM 31.2 MB, repair 73 ms, heap 6–7 MB. Cancelled 7.5 s into the conversion: "Conversió cancel·lada" shown, back to the recording, nothing at a new location. Replacing an existing file: the browser emptied it as soon as the dialog closed, and after the cancel it was gone (expected result revised). |
+| 2026-11-17 | Headless Chromium (Playwright 1.65, server) | — | 5a, 5b, 8c (soak, synthetic) | Pass | `SOAK_MINUTES=120`, 640×360 with markers every 10 s. 7,200 s, 693 MB, no `chunk-gap`, silence, track or write errors; heap 10 MB flat throughout (recording and conversion), `maxWriteMs` ≤ 56. Repair 7.3 s, 3,497 cues; seeks to the middle and end exact. WebM sync −48 to +83 ms at 25 markers, no drift (median first five −37 ms, last five −33 ms). MP4 (Opus, Linux) 394 MB in 687 s, same length, seeks; picture and beeps match the WebM at all 25 markers. On its own the MP4 drifts to +6.2 s at the end: headless audio clock 0.086 % slow, laid back to back by the converter (known limitation). A first run (2026-11-16) skipped the repair for lack of space: Playwright's private-mode context has a small quota; the soak now uses a normal profile (10.7 GB). |
 
 ## Known spike limitations
 
