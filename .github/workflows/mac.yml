@@ -1,7 +1,8 @@
 # Browser tests on macOS in the installed Chrome and Edge, where the MP4's audio is AAC from the
 # platform encoder (the server's Chromium has none). Automates the Mac re-checks of 8a and 8c in
 # docs/manual-tests.md with the synthetic stream: sync, clicks, and AVFoundation (QuickTime's
-# framework) decoding the MP4. Manual only: macOS minutes count ten times on a private repo.
+# framework) decoding the MP4. Manual only: a 60-minute run takes about 80 minutes of macOS time
+# (free on a public repo; counted ten times on a private one).
 #
 #   gh workflow run mac.yml -f soak_minutes=5     # 8a: e2e suite + 5-minute soak per browser
 #   gh workflow run mac.yml -f soak_minutes=60    # 8c
@@ -19,8 +20,6 @@ on:
         description: Comma-separated Playwright channels
         default: chrome,msedge
         required: true
-  push:
-    branches: [mac-ci] # first runs, before the workflow is on main; remove when merging
 
 permissions:
   contents: read
@@ -49,7 +48,7 @@ jobs:
         env:
           CI: '1'
           MAC_BROWSERS: ${{ inputs.browsers || 'chrome,msedge' }}
-          SOAK_MINUTES: ${{ inputs.soak_minutes || vars.MAC_PUSH_SOAK_MINUTES || '0' }} # pushes: the repo variable, else e2e only
+          SOAK_MINUTES: ${{ inputs.soak_minutes }}
       - name: Keep results
         if: always()
         uses: actions/upload-artifact@v4

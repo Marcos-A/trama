@@ -3,9 +3,10 @@
 *Trama* (Catalan/Spanish): the weft of a fabric, and the plot of a story. The app weaves
 tracks together: video, audio, subtitles, translations.
 
-Status (2026-11-16): recorder prototype live on both URLs (`main`): tab recording to OPFS,
-WebM repair and recovery, WebM→MP4 conversion in the browser (§2, §7), raw tab audio; Playwright
-suite with A/V sync markers and an on-demand soak test. Decision gate (§5.2) taken: **web-only**
+Status (2026-11-17): recorder prototype live on both URLs (`main`): tab recording to OPFS,
+WebM repair and recovery, WebM→MP4 conversion in the browser (§2, §7) keeping the audio's
+recorded timing, raw tab audio; Playwright suite with A/V sync markers and an on-demand soak
+test, also run on macOS in Chrome and Edge through GitHub Actions (`.github/workflows/mac.yml`). Decision gate (§5.2) taken: **web-only**
 (§7); target browsers Chrome and Edge. Remaining spike checks (Chrome long run, a short real-UI
 pass of 7a–7e) in [manual-tests.md](manual-tests.md), then steps 4–5. The original brief for phase 1 is
 [spec/especificacion_mvp_grabador_reuniones.md](spec/especificacion_mvp_grabador_reuniones.md)

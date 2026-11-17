@@ -34,6 +34,15 @@ private-mode context has too little storage for the repair's copy.
 shared server for the whole run; avoid running it next to other projects' browser suites.
 Headless Chromium is never throttled like a hidden tab on a Mac, so it does not replace check 3.
 
+On macOS, in the installed Chrome and Edge, the same e2e suite and soak run in GitHub Actions
+(`.github/workflows/mac.yml`, started by hand: `gh workflow run mac.yml -f soak_minutes=60`).
+There the MP4's audio is AAC from Apple's encoder, which the server's Chromium lacks, and the
+MP4 is also opened with AVFoundation (`scripts/avfoundation-check.swift`, QuickTime's framework):
+playable, H.264 + AAC, same length, both tracks decode to the end. Both suites also look for
+clicks in the WebM's and the MP4's sound (`tests/helpers/clicks.ts`). The macOS runner is a VM
+whose hardware codecs fail now and then, so tests there get one retry. Results are kept as the
+run's `mac-results` artifact (MP4s left out) for 14 days.
+
 ## How to run a spike session
 
 1. Open the build with `?debug` (preview URL, or `npm run dev` forwarded to
@@ -123,8 +132,8 @@ runs; the extension and native options are out of scope (PLAN §7).
 
 ### Re-check after the MP4 audio timing change
 
-Branch `mp4-audio-timing`, on preview only until this passes. The AAC path (macOS) cannot run
-on the server, whose Chromium has no AAC encoder, so repeat on the Mac:
+Done in the macOS workflow on 2026-11-17 (Results); left by hand: one listen to a real AAC MP4
+with speech or music. The original checklist:
 
 - **8a** (Chrome, ≥ 5-min recording, preferably with speech or music throughout): QuickTime
   plays with sound, same length as the WebM (within 0.1 s), seeks; `mp4.audioCodec` `aac`.
@@ -148,6 +157,7 @@ on the server, whose Chromium has no AAC encoder, so repeat on the Mac:
 | 2026-11-15 | Edge 157 | Tahoe 26.7.3 | 8d | Pass | 5 min 17 s, portrait tab 1608×2684 with motion: WebM 31.2 MB, repair 73 ms, heap 6–7 MB. Cancelled 7.5 s into the conversion: "Conversió cancel·lada" shown, back to the recording, nothing at a new location. Replacing an existing file: the browser emptied it as soon as the dialog closed, and after the cancel it was gone (expected result revised). |
 | 2026-11-17 | Headless Chromium (Playwright 1.65, server) | — | 5a, 5b, 8c (soak, synthetic) | Pass | `SOAK_MINUTES=120`, 640×360 with markers every 10 s. 7,200 s, 693 MB, no `chunk-gap`, silence, track or write errors; heap 10 MB flat throughout (recording and conversion), `maxWriteMs` ≤ 56. Repair 7.3 s, 3,497 cues; seeks to the middle and end exact. WebM sync −48 to +83 ms at 25 markers, no drift (median first five −37 ms, last five −33 ms). MP4 (Opus, Linux) 394 MB in 687 s, same length, seeks; picture and beeps match the WebM at all 25 markers. On its own the MP4 drifts to +6.2 s at the end: headless audio clock 0.086 % slow, laid back to back by the converter (known limitation). A first run (2026-11-16) skipped the repair for lack of space: Playwright's private-mode context has a small quota; the soak now uses a normal profile (10.7 GB). |
 | 2026-11-17 | Headless Chromium (Playwright 1.65, server) | — | 8c (soak, synthetic), MP4 audio timing | Pass | Branch `mp4-audio-timing`, `SOAK_MINUTES=10`. Audio clock 0.50 % slow (unevenly). No bad events, heap 10 MB flat. MP4 (Opus) in 59 s; `audioRetime` 122 pads (3.19 s) and 10 trims (0.22 s). MP4 beeps within ±20 ms of the WebM's at all 25 markers (flashes identical); MP4 alone −48 to +5 ms, no drift. Without the fix it would have ended ~3 s out. Whether the cuts are audible is for the Mac check. |
+| 2026-11-17 | Chrome 157, Edge 156 (GitHub Actions macos-15 VM, synthetic stream) | Sequoia 15.8.2 | 8a, 8c (automated), MP4 audio timing, AAC priming | Pass | Run 44078454240, branch `mac-ci`: e2e suite and `SOAK_MINUTES=60` in each browser, 43 passed. Soak: 3,600 s, 322 / 320 MB, no bad events, heap 3 MB flat, repair 1.4 / 1.6 s, seeks exact. MP4 (AAC) in 472 / 497 s, heap 4–5 MB; `audioRetime` 180 / 177 pads (4.7 / 4.6 s, audio clock 0.13 % slow), no trims; no clicks in WebM or MP4; MP4 sync −43 to +16 / −48 to +42 ms at 25 markers, no drift. AVFoundation: playable, avc1 + aac, both tracks decoded to 3,600.1–3,600.3 s. An earlier run found the AAC MP4's sound a constant 41–47 ms late (encoder priming, 2112 frames); fixed by starting the audio that much earlier, with an edit list (`src/media/webm-to-mp4.ts`), then −10 to +3 ms against the WebM. One flaky e2e attempt in Chrome (MP4's first flash 95 ms after the WebM's, the rest exact; passed on retry). |
 
 ## Known spike limitations
 
@@ -158,8 +168,7 @@ on the server, whose Chromium has no AAC encoder, so repeat on the Mac:
   must stay open. Where the browser has no AAC encoder, the MP4 keeps Opus audio (VLC and
   browsers play it; QuickTime may not). The MP4 has its index at the end, which only matters
   when streaming it from a web server.
-- **Desa en MP4** keeps the audio on the WebM's recorded timing (since 2026-11-16, branch
-  `mp4-audio-timing`): where the recording has a gap, or the tab's audio clock ran slower than
+- **Desa en MP4** keeps the audio on the WebM's recorded timing (since 2026-11-16): where the recording has a gap, or the tab's audio clock ran slower than
   the computer's, silence is inserted; where it ran faster, a little audio is skipped. Each
   correction brings the sound back within 20 ms of where it was recorded and has a 2.5 ms fade,
   so it should not click; the log's `mp4.audioRetime` counts them (`pads`, `paddedS`, `trims`,
@@ -167,5 +176,8 @@ on the server, whose Chromium has no AAC encoder, so repeat on the Mac:
   fake audio device runs 0.1–3 % slow, unevenly (0.5 % in a 10-min soak: 122 pads and 10 trims,
   one every ~4.5 s). Before this the MP4 laid the audio back to back and drifted by the clock
   difference (+6.2 s after 2 h in the 2026-11-17 soak).
+- AAC: the MP4 skips the encoder's 2112-frame priming with an edit list (since 2026-11-17).
+  2112 is the delay of Apple's encoder, which Chrome and Edge use on macOS; Windows' encoder is
+  untested, and a different delay there would put the sound a few tens of ms early or late.
 - Choosing to replace an existing file in the save dialog empties it straight away (Chrome and
   Edge do this, not the app), so cancelling or failing the export afterwards loses the old file.
