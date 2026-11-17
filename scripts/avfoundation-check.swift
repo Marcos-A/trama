@@ -43,7 +43,10 @@ do {
     var endS = 0.0
     while let sample = output.copyNextSampleBuffer() {
       buffers += 1
-      let end = CMTimeAdd(CMSampleBufferGetPresentationTimeStamp(sample), CMSampleBufferGetDuration(sample))
+      // Decoded video frames often carry no duration; fall back to the frame's start.
+      let pts = CMSampleBufferGetPresentationTimeStamp(sample)
+      let duration = CMSampleBufferGetDuration(sample)
+      let end = duration.isNumeric ? CMTimeAdd(pts, duration) : pts
       if end.isNumeric { endS = max(endS, end.seconds) }
     }
     info["decodedBuffers"] = buffers

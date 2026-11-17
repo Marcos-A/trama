@@ -55,6 +55,7 @@ export function expectPlaysInQuickTime(report: AvReport, expectedS: number): voi
   for (const t of report.tracks!) {
     expect(t.readerStatus, `${t.type} decoded without error`).toBe('completed');
     expect(t.decodedBuffers, `${t.type} decoded something`).toBeGreaterThan(0);
+    // Within 0.2 s of the end: a video frame counts from its start, so the last one ends ~33 ms later.
     expect(t.decodedToS, `${t.type} decoded to the end`).toBeGreaterThan(t.startS + t.durationS - 0.2);
   }
 }
