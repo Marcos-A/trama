@@ -73,7 +73,10 @@ There the MP4's audio is AAC from Apple's encoder, which the server's Chromium l
 MP4 is also opened with AVFoundation (`scripts/avfoundation-check.swift`, QuickTime's framework):
 playable, H.264 + AAC, same length, both tracks decode to the end. Both suites also look for
 clicks in the WebM's and the MP4's sound (`tests/helpers/clicks.ts`). The macOS runner is a VM
-whose hardware codecs fail now and then, so tests there get one retry. Results are kept as the
+whose hardware codecs fail now and then, so tests there get one retry. Its hardware encoder
+also now and then makes the first all-white frame of a marker slightly grey in the MP4, so that
+flash is found a frame or two late (50–95 ms, one marker in a run, the rest at 0 ms): the
+MP4-against-WebM check lets one flash per recording be up to 0.1 s late and logs it. Results are kept as the
 run's `mac-results` artifact (the soak's MP4 left out; the e2e sync test's is kept, to look into a
 failed attempt) for 14 days.
 
