@@ -222,8 +222,11 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   // Real capture is held to the brief's 0.5 s per marker (the VM's capture puts the odd one
   // ~0.17 s out); no drift either way.
   const syncOpts = REAL ? { maxOffsetS: 0.5 } : {};
-  expectInSync(checked(webmSync), minMarkers - (REAL ? 1 : 0), syncOpts);
-  expectInSync(checked(mp4Sync), minMarkers - (REAL ? 1 : 0), syncOpts);
+  // Real capture: one marker fewer for the first, and one more for the last, which can fall past
+  // the end (the meeting tab's markers are not lined up with the recording's start).
+  const minChecked = minMarkers - (REAL ? 2 : 0);
+  expectInSync(checked(webmSync), minChecked, syncOpts);
+  expectInSync(checked(mp4Sync), minChecked, syncOpts);
   expectMp4MatchesWebm(checked(mp4Sync), checked(webmSync));
   const minEdges = 2 * minMarkers;
   // Real capture without a sound card (the server, the macOS CI VM) goes through the browser's
