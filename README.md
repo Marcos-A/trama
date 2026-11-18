@@ -13,10 +13,12 @@ through it. Trama is a browser app that casts that mesh over video: it catches a
 happens (video and tab audio), then weaves in transcripts, subtitles and translations so that
 nothing said slips through and the plot can always be followed.
 
-**Status:** early development. The site runs a test prototype of the first feature, recording a
-meeting: it records a tab with its audio, repairs the file so it can be seeked, and saves it as
-WebM or MP4. It has been checked by hand in Chrome and Edge on macOS, with recordings of up to
-two and a half hours; it is not the final version.
+**Status:** v0.1, the first release of phase 1: recording a meeting. Trama records a Chrome or
+Edge tab with its audio, repairs the file so it can be seeked, and saves it as WebM or MP4. It
+has been tested on macOS with Chrome's real tab capture of a stand-in meeting tab (automated,
+up to two hours with the window minimised) and by hand with ordinary tabs (up to two and a half
+hours), but not yet with a real Teams meeting. What is still untested, and the known
+limitations, are in [docs/limitations.md](docs/limitations.md).
 
 ## What it will do
 
@@ -31,6 +33,20 @@ Trama is web-only: it records meetings open in a Chrome or Edge tab. The Teams d
 cannot be recorded; join the meeting in the browser instead. Chrome and Edge on the desktop are
 the only browsers it has been tested in, and the app recommends them; Firefox and Safari cannot
 record a tab's audio, so recording is disabled there.
+
+## Recording a meeting
+
+1. Join the meeting in a Chrome or Edge tab.
+2. Open <https://trama.marcos-a.com> in another tab and press **Grava una pestanya** (the
+   interface is in Catalan).
+3. In the browser's dialog, choose the meeting's tab and keep "Share tab audio" on. If the tab
+   sends no sound, Trama shows **Sense so**.
+4. Keep Trama's tab open; it can stay in the background. Press **Atura** to finish, check the
+   recording in the player, and save it with **Desa el vídeo** (WebM) or **Desa en MP4**.
+5. Once the file is saved, **Esborra la còpia del navegador** frees the space. If the tab
+   closes mid-recording, the recording is listed under **Còpies al navegador** next time.
+
+Trama never records the microphone, so your own voice is not in the recording.
 
 The full plan is in [docs/PLAN.md](docs/PLAN.md); the original phase 1 brief (in Spanish) is in
 [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
@@ -86,6 +102,6 @@ public/          static files copied as-is
 deploy/          nginx config and security headers
 scripts/         deploy, build-info, test and log-summary scripts
 tests/           Playwright tests: unit/ (Node), e2e/ (headless Chromium), fixtures/
-docs/            plan, original brief and manual test results
+docs/            plan, original brief, manual test results and limitations log
 docs/brand/      brand pack: logo masters, colour and usage guide
 ```

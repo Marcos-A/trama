@@ -3,12 +3,13 @@
 *Trama* (Catalan/Spanish): the weft of a fabric, and the plot of a story. The app weaves
 tracks together: video, audio, subtitles, translations.
 
-Status (2026-11-17): recorder prototype live on both URLs (`main`): tab recording to OPFS,
-WebM repair and recovery, WebM→MP4 conversion in the browser (§2, §7) keeping the audio's
-recorded timing, raw tab audio; Playwright suite with A/V sync markers and an on-demand soak
-test, also run on macOS in Chrome and Edge through GitHub Actions (`.github/workflows/mac.yml`). Decision gate (§5.2) taken: **web-only**
-(§7); target browsers Chrome and Edge. Remaining spike checks (Chrome long run, a short real-UI
-pass of 7a–7e) in [manual-tests.md](manual-tests.md), then steps 4–5. The original brief for phase 1 is
+Status (2026-11-18): phase 1 released as v0.1 (§5 step 5): tab recording to OPFS, WebM repair
+and recovery, WebM→MP4 conversion in the browser (§2, §7) keeping the audio's recorded timing,
+raw tab audio; Playwright suite with A/V sync markers, real tab capture of a stand-in meeting
+tab and an on-demand soak, also run on macOS in Chrome and Edge through GitHub Actions
+(`.github/workflows/mac.yml`). Scope: **web-only** (§7); target browsers Chrome and Edge. Not
+tested with a real Teams meeting: that session is postponed (§7, 2026-11-18); the untested
+checks and known limitations are in [limitations.md](limitations.md). The original brief for phase 1 is
 [spec/especificacion_mvp_grabador_reuniones.md](spec/especificacion_mvp_grabador_reuniones.md)
 (Spanish); this plan adapts it to this server and to the wider product.
 
@@ -151,7 +152,8 @@ resources.
   and Brave are out of scope); avoid running alongside other projects' browser suites, which
   load the 6-core server heavily.
 - **Manual (Mac, real Teams):** the brief's §6 checklist, recorded in `docs/manual-tests.md`
-  with browser versions and results.
+  with browser versions and results. The session with real Teams is postponed (2026-11-18,
+  §7); real tab capture is automated instead (`tests/capture`, with a stand-in meeting tab).
 - **Flow:** work on branches → deploy to preview → manual test on the Mac → merge to `main` →
   deploy production. Docs (README in each language, screenshots) updated before each release
   tag.
@@ -166,20 +168,52 @@ resources.
    the tab mid-recording (recovery), and native Teams window as an experiment.
    **Decision gate:** web-only if reliable; otherwise a Chrome extension (`tabCapture`) as
    capturer with the web app as UI; ScreenCaptureKit only if native Teams audio is required.
-   **Decided 2026-11-15: web-only** (§7).
+   **Decided 2026-11-15: web-only** (§7). The checklist ran on the Mac by hand in Chrome and
+   Edge with ordinary tabs (Edge for 2 h 29 min) and, from 2026-11-17, automatically with real
+   tab capture of a stand-in meeting tab (2 h hidden in Chrome on the macOS VM). The session
+   with real Teams (a real meeting, the real picker, the "Stop sharing" bar, WebRTC) is
+   postponed indefinitely (2026-11-18, §7); v0.1 is released without it.
 3. **Harden** — error handling (denied permission, no audio, share ended, low space,
    unexpected close), WebM repair, recovery UI, Playwright suite.
 4. **Polish UI** — Catalan UI, recording indicator, stopwatch, audio status, player, editable
    name, "Desar WebM".
-5. **Release v0.1** — README (ca/en), limitations log (brief deliverable 4), screenshots,
-   tag, production deploy.
+5. **Release v0.1** — README (en/ca/es), limitations log ([limitations.md](limitations.md),
+   brief deliverable 4), screenshots (none in the READMEs yet), tag, production deploy.
 
 ## 6. Acceptance criteria (phase 1)
 
-The brief's §7 list, plus:
-- [ ] Killing the recorder tab mid-recording leaves a recoverable file up to the cut.
-- [ ] The exported WebM is seekable and shows its duration.
-- [ ] CSP and Permissions-Policy headers are present on both URLs.
+Status at v0.1 (2026-11-18). Anything that needs a real Teams meeting is marked *not
+verified*: that session is postponed (§7). Results in [manual-tests.md](manual-tests.md);
+untested checks in [limitations.md](limitations.md).
+
+The brief's §7 list:
+- [ ] Records real video and audio of a Teams meeting in a tab, without microphone or camera.
+  *Not verified with Teams.* Real tab capture of a stand-in meeting tab passes (`tests/capture`,
+  Chrome and Edge on macOS); the microphone and camera are never requested and are blocked by
+  the Permissions-Policy.
+- [ ] The user can hear the meeting while it is recorded. *Not verified with Teams*
+  (`suppressLocalAudioPlayback: false` is requested).
+- [x] Recording keeps working while the user switches to another application, in the
+  conditions tested: 2 h in Chrome with the window minimised (macOS VM, real tab capture),
+  6 min hidden in Chrome and Edge.
+- [x] The file plays with picture and sound in sync: within 0.1 s at every marker, WebM and
+  MP4, over 2 h (stand-in tab); by hand in QuickTime (Edge's 2 h 29 min MP4). Not verified
+  with Teams' own stream.
+- [x] 90-minute continuous run, with 120 minutes as an extra target: 2 h 29 min in Edge by
+  hand; 2 h real-capture soak in Chrome on the macOS VM.
+- [x] Missing audio is detected and reported: **Sense so** (automated, 7e). The real picker's
+  "Share tab audio" box has not been unticked by hand.
+- [x] The file is saved locally, without upload: CSP `connect-src 'self'`; every browser test
+  fails on a request to another origin.
+- [x] The full video is not kept in memory while recording: heap flat at 3–10 MB over 2-hour
+  runs.
+- [x] Limitations and failure cases are documented: [limitations.md](limitations.md).
+
+Plus:
+- [x] Killing the recorder tab mid-recording leaves a recoverable file up to the cut
+  (automated 7c, plus the cut-file repair unit tests).
+- [x] The exported WebM is seekable and shows its duration (soaks; by hand in the page).
+- [x] CSP and Permissions-Policy headers are present on both URLs (checked live 2026-11-18).
 
 ## 7. Open questions
 
@@ -197,6 +231,14 @@ The brief's §7 list, plus:
   and models tuned on Catalan/Spanish code-switching.
 
 ### Decided
+
+- **v0.1 without a real Teams session** (decided 2026-11-18). The manual Mac session with real
+  Teams is postponed indefinitely and v0.1 is released without it. Real tab capture is covered
+  by automated tests with a stand-in meeting tab (`tests/capture`, `SOAK_CAPTURE=real`: 2 h
+  hidden in Chrome on the macOS VM, 6 min hidden in Chrome and Edge). The checks that need
+  Teams are listed as untested in [limitations.md](limitations.md): a real Teams meeting, the
+  real picker, the "Stop sharing" bar, and WebRTC (the automated WebRTC variants are skipped).
+  Revisit when a session with real Teams is possible, or if users report problems.
 
 - **Web-only** (decided 2026-11-15, at the §5.2 gate). Tab capture records video and tab audio
   reliably in Chrome and Edge 157 on macOS: 2 h 29 min without memory growth or drift, the tab

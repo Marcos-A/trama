@@ -13,10 +13,13 @@ que tiende esa malla sobre el vídeo: atrapa una reunión mientras sucede (víde
 pestaña) y le entreteje transcripciones, subtítulos y traducciones para que no se escape nada de
 lo que se dice y nunca se pierda el hilo.
 
-**Estado:** en desarrollo inicial. El sitio usa un prototipo de pruebas de la primera
-función, la grabación de reuniones: graba una pestaña con su audio, repara el archivo para que
-se pueda avanzar y retroceder, y lo guarda en WebM o MP4. Se ha probado a mano con Chrome y
-Edge en macOS, con grabaciones de hasta dos horas y media; no es la versión final.
+**Estado:** v0.1, la primera versión de la fase 1: la grabación de reuniones. Trama graba una
+pestaña de Chrome o Edge con su audio, repara el archivo para que se pueda avanzar y
+retroceder, y lo guarda en WebM o MP4. Se ha probado en macOS con la captura real de pestañas
+de Chrome y una pestaña que hace de reunión (pruebas automáticas, de hasta dos horas con la
+ventana minimizada) y a mano con pestañas normales (hasta dos horas y media), pero todavía no
+con una reunión real de Teams. Lo que aún no se ha probado y las limitaciones conocidas están
+en [docs/limitations.md](docs/limitations.md) (en inglés).
 
 ## Qué hará
 
@@ -31,6 +34,22 @@ Trama funciona solo en el navegador: graba reuniones abiertas en una pestaña de
 No puede grabar la aplicación de escritorio de Teams; en ese caso, entra en la reunión desde el navegador.
 Solo se ha probado con Chrome y Edge de escritorio, que son los navegadores que recomienda la aplicación;
 Firefox y Safari no pueden grabar el audio de una pestaña, y por eso en ellos la grabación está desactivada.
+
+## Cómo grabar una reunión
+
+1. Entra en la reunión en una pestaña de Chrome o Edge.
+2. Abre <https://trama.marcos-a.com> en otra pestaña y pulsa **Grava una pestanya** (la
+   interfaz está en catalán).
+3. En el diálogo del navegador, elige la pestaña de la reunión y deja activada la opción de
+   compartir el audio de la pestaña. Si la pestaña no envía sonido, Trama muestra **Sense so**.
+4. Deja abierta la pestaña de Trama; puede quedar en segundo plano. Pulsa **Atura** para
+   terminar, comprueba la grabación en el reproductor y guárdala con **Desa el vídeo** (WebM) o
+   **Desa en MP4**.
+5. Cuando ya tengas el archivo guardado, **Esborra la còpia del navegador** libera el espacio.
+   Si la pestaña se cierra a mitad de grabación, la próxima vez la encontrarás en **Còpies al
+   navegador**.
+
+Trama nunca graba el micrófono, así que tu voz no sale en la grabación.
 
 El plan completo está en [docs/PLAN.md](docs/PLAN.md) (en inglés); el encargo original de la
 fase 1 está en [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
@@ -89,6 +108,6 @@ public/          ficheros estáticos que se copian tal cual
 deploy/          configuración de nginx y cabeceras de seguridad
 scripts/         scripts de despliegue, de información de compilación, de pruebas y de resumen de registros
 tests/           pruebas de Playwright: unit/ (Node), e2e/ (Chromium sin interfaz), fixtures/
-docs/            plan, encargo original y resultados de las pruebas manuales
+docs/            plan, encargo original, resultados de las pruebas manuales y registro de limitaciones
 docs/brand/      paquete de marca: originales del logotipo, colores y guía de uso
 ```

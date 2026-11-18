@@ -76,15 +76,17 @@ Realizar una prueba pequeña **antes** de construir el producto:
 
 ## 7. Criterios de aceptación
 
-- [ ] Graba vídeo y audio reales de una reunión de Teams en pestaña, sin micrófono/cámara.
-- [ ] El usuario puede oír la reunión mientras se graba.
-- [ ] La grabación sigue funcionando al cambiar a otra aplicación en las condiciones probadas.
-- [ ] El archivo resultante se reproduce con imagen y sonido sincronizados.
-- [ ] Prueba continua de 90 minutos completada; objetivo adicional de 120 minutos.
-- [ ] Se detecta y comunica la ausencia de audio.
-- [ ] El archivo se guarda localmente sin subida al servidor.
-- [ ] No se retiene el vídeo completo en memoria durante la grabación.
-- [ ] Se documentan limitaciones y casos de fallo.
+*Estado en la v0.1 (2026-11-18), con las pruebas que lo respaldan: [PLAN.md](../PLAN.md) §6.*
+
+- [ ] Graba vídeo y audio reales de una reunión de Teams en pestaña, sin micrófono/cámara. *v0.1: sin verificar con Teams real; probado con captura real de una pestaña que hace de reunión.*
+- [ ] El usuario puede oír la reunión mientras se graba. *v0.1: sin verificar con Teams real.*
+- [x] La grabación sigue funcionando al cambiar a otra aplicación en las condiciones probadas.
+- [x] El archivo resultante se reproduce con imagen y sonido sincronizados.
+- [x] Prueba continua de 90 minutos completada; objetivo adicional de 120 minutos.
+- [x] Se detecta y comunica la ausencia de audio.
+- [x] El archivo se guarda localmente sin subida al servidor.
+- [x] No se retiene el vídeo completo en memoria durante la grabación.
+- [x] Se documentan limitaciones y casos de fallo.
 
 ## 8. Seguridad, privacidad y cumplimiento
 

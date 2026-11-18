@@ -13,10 +13,13 @@ malla sobre el vídeo: atrapa una reunió mentre té lloc (vídeo i àudio de la
 entreteixeix transcripcions, subtítols i traduccions perquè no s'escapi res del que s'hi diu i
 no se'n perdi mai el fil.
 
-**Estat:** en desenvolupament inicial. El lloc fa servir un prototip de proves de la primera
-funció, la gravació de reunions: grava una pestanya amb el seu àudio, repara el fitxer perquè
-s'hi pugui avançar i retrocedir, i el desa en WebM o MP4. S'ha provat a mà amb Chrome i Edge a
-macOS, amb gravacions de fins a dues hores i mitja; no és la versió final.
+**Estat:** v0.1, la primera versió de la fase 1: la gravació de reunions. Trama grava una
+pestanya de Chrome o Edge amb el seu àudio, repara el fitxer perquè s'hi pugui avançar i
+retrocedir, i el desa en WebM o MP4. S'ha provat a macOS amb la captura real de pestanyes de
+Chrome i una pestanya que fa de reunió (proves automàtiques, de fins a dues hores amb la
+finestra minimitzada) i a mà amb pestanyes normals (fins a dues hores i mitja), però encara no
+amb una reunió real de Teams. El que encara no s'ha provat i les limitacions conegudes són a
+[docs/limitations.md](docs/limitations.md) (en anglès).
 
 ## Què farà
 
@@ -31,6 +34,19 @@ Trama funciona només al navegador: grava reunions obertes en una pestanya de Ch
 No pot gravar l'aplicació d'escriptori de Teams; en aquest cas, entra a la reunió des del navegador.
 Només s'ha provat amb Chrome i Edge d'escriptori, que són els navegadors que recomana l'aplicació;
 Firefox i Safari no poden gravar l'àudio d'una pestanya, i per això s'hi desactiva la gravació.
+
+## Com gravar una reunió
+
+1. Entra a la reunió en una pestanya de Chrome o Edge.
+2. Obre <https://trama.marcos-a.com> en una altra pestanya i prem **Grava una pestanya**.
+3. Al diàleg del navegador, tria la pestanya de la reunió i deixa activada l'opció de compartir
+   l'àudio de la pestanya. Si la pestanya no envia so, Trama mostra **Sense so**.
+4. Deixa oberta la pestanya de Trama; pot quedar en segon pla. Prem **Atura** per acabar,
+   comprova la gravació al reproductor i desa-la amb **Desa el vídeo** (WebM) o **Desa en MP4**.
+5. Quan ja tinguis el fitxer desat, **Esborra la còpia del navegador** allibera l'espai. Si la
+   pestanya es tanca a mitja gravació, la propera vegada la trobaràs a **Còpies al navegador**.
+
+Trama no grava mai el micròfon, així que la teva veu no surt a la gravació.
 
 El pla complet és a [docs/PLAN.md](docs/PLAN.md) (en anglès); l'encàrrec original de la fase 1
 (en castellà) és a [docs/spec/](docs/spec/especificacion_mvp_grabador_reuniones.md).
@@ -89,6 +105,6 @@ public/          fitxers estàtics que es copien tal qual
 deploy/          configuració de nginx i capçaleres de seguretat
 scripts/         scripts de desplegament, d'informació de compilació, de proves i de resum de registres
 tests/           proves de Playwright: unit/ (Node), e2e/ (Chromium sense interfície), fixtures/
-docs/            pla, encàrrec original i resultats de les proves manuals
+docs/            pla, encàrrec original, resultats de les proves manuals i registre de limitacions
 docs/brand/      paquet de marca: originals del logotip, colors i guia d'ús
 ```

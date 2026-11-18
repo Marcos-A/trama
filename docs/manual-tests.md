@@ -5,6 +5,11 @@ only cover headless Chromium with a synthetic stream; anything involving a real 
 real audio is recorded here. Target browsers: Chrome and Edge on the desktop. Safari and Brave
 are out of scope (2026-11-16); the app says it has only been tested in Chrome and Edge.
 
+The session with real Teams was postponed on 2026-11-18 and v0.1 was released without it: real
+tab capture is covered by `tests/capture` and its stand-in meeting tab. The checks that still
+need real Teams are listed in [limitations.md](limitations.md); "Suggested session order" below
+is the plan for when the session happens.
+
 ## What the automated tests already cover
 
 `bash scripts/test.sh` runs these on every change (headless Chromium, synthetic tab stream).
@@ -46,7 +51,7 @@ the MP4 adds none: each MP4 click must sit where the WebM has one (by time, not 
 can split one glitch into several detections). WebRTC needs a network route, which the server's test container
 has none of (`--network none`), and on the macOS runner the loopback call does not connect
 either (probably macOS's local-network permission), so the WebRTC variants are skipped in both
-places for now; real Teams covers WebRTC in the manual session. Hiding a
+places for now; real Teams would cover WebRTC in the postponed manual session. Hiding a
 window by minimising it needs a window manager, so under Xvfb "hidden" means another tab in front;
 on macOS the window is minimised as well.
 
@@ -211,25 +216,7 @@ with speech or music. The original checklist:
 | 2026-11-18 | Chrome 157 (GitHub Actions macos-15 VM), real tab capture | Sequoia 15.8.2 | 3 + 8a + 8c (`SOAK_CAPTURE=real`, 120 min), 1, 3, 7b, 7f (`tests/capture`, 6 min hidden) | Pass | Run 44256666781, branch `real-capture`. Soak: Trama and the meeting tab hidden for 118 of the 120 min (window minimised) and during the MP4 conversion; 7,202 s, 682 MB, no bad events, heap 4 MB flat, `maxWriteMs` 479; repair 9.3 s; seeks exact. Sync −76 to −11 ms in the WebM, −76 to +3 ms in the MP4, 23 markers, no drift. MP4 (AAC) 824 MB in 1,010 s with Trama hidden, heap 5 MB; `audioRetime` 699 pads (17.2 s: the VM's audio clock 0.12 % slow). AVFoundation: playable, both tracks decoded to 7,202 s. Clicks from the VM's stand-in sound output: 4,898 in the WebM, 4,620 in the MP4. 6-min hidden test: 127 markers within −79 to +52 ms, no bad events. One synthetic e2e attempt failed with the VM encoder's `EncodingError` (WebM kept, message shown) and passed on retry. |
 | 2026-11-18 | Chrome 157, Edge 156 (GitHub Actions macos-15 VM) | Sequoia 15.8.2 | 8a, 8c (synthetic, 5 min), 1, 3, 7b, 7f (`tests/capture`) | Pass | Run 44279369951, on 76714a1 (one late flash allowed). Edge passed everything first time. Chrome needed two retries, both since handled in the tests: the synthetic soak's first marker (1 s in) had its beep but no flash yet, and the tab-capture MP4 had 40 detected clicks against the WebM's 37, all at the same times (AAC splitting the VM's glitches). Synthetic soak sync within ±56 ms (WebM) and ±68 ms (MP4) from the second marker on; 6-min hidden test 128 markers within −79 to +25 ms in Edge. WebRTC loopback did not connect on the runner, so those variants were skipped. |
 
-## Known spike limitations
+## Known limitations
 
-- The repair needs free space for a second copy while it runs. Without it, the video is still
-  offered and saved, unrepaired, with a warning.
-- The browser copy is deleted by hand (**Esborra la còpia del navegador**) after export.
-- **Desa en MP4** re-encodes the whole video, so it takes a while on long recordings and the tab
-  must stay open. Where the browser has no AAC encoder, the MP4 keeps Opus audio (VLC and
-  browsers play it; QuickTime may not). The MP4 has its index at the end, which only matters
-  when streaming it from a web server.
-- **Desa en MP4** keeps the audio on the WebM's recorded timing (since 2026-11-16): where the recording has a gap, or the tab's audio clock ran slower than
-  the computer's, silence is inserted; where it ran faster, a little audio is skipped. Each
-  correction brings the sound back within 20 ms of where it was recorded and has a 2.5 ms fade,
-  so it should not click; the log's `mp4.audioRetime` counts them (`pads`, `paddedS`, `trims`,
-  `trimmedS`). On the Mac the clocks agree closely, so expect few or none; headless Chromium's
-  fake audio device runs 0.1–3 % slow, unevenly (0.5 % in a 10-min soak: 122 pads and 10 trims,
-  one every ~4.5 s). Before this the MP4 laid the audio back to back and drifted by the clock
-  difference (+6.2 s after 2 h in the 2026-11-17 soak).
-- AAC: the MP4 skips the encoder's 2112-frame priming with an edit list (since 2026-11-17).
-  2112 is the delay of Apple's encoder, which Chrome and Edge use on macOS; Windows' encoder is
-  untested, and a different delay there would put the sound a few tens of ms early or late.
-- Choosing to replace an existing file in the save dialog empties it straight away (Chrome and
-  Edge do this, not the app), so cancelling or failing the export afterwards loses the old file.
+Moved to [limitations.md](limitations.md) (the brief's limitations log, deliverable 4), with the
+checks still untested without real Teams.
