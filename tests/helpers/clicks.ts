@@ -15,6 +15,8 @@ export interface ClickReport {
   /** Discontinuities away from the beeps' edges (first 20). */
   clicks: { atS: number; jump: number; level: number }[];
   count: number;
+  /** When every click falls, in seconds to the millisecond (all of them, unlike `clicks`). */
+  times: number[];
   /** Beep edges found (starts and ends), for a sanity check that the detector saw the markers. */
   edges: number;
 }
@@ -64,7 +66,13 @@ export async function findClicks(app: Page, dir: string, name: string): Promise<
       const nearEdge = (s: number) => edges.some((e) => Math.abs(e - s) < EDGE_GUARD_S);
       // The hum starts and stops abruptly with the stream, so its first and last 0.1 s are skipped.
       const clicks = candidates.filter((c) => c.atS > 0.1 && c.atS < t - 0.1 && !nearEdge(c.atS));
-      return { seconds: t, clicks: clicks.slice(0, 20), count: clicks.length, edges: edges.length };
+      return {
+        seconds: t,
+        clicks: clicks.slice(0, 20),
+        count: clicks.length,
+        times: clicks.map((c) => Math.round(c.atS * 1000) / 1000),
+        edges: edges.length,
+      };
     },
     { url: MEDIABUNNY_URL, dir, name },
   );
@@ -82,15 +90,12 @@ export function expectNoClicks(report: ClickReport, minEdges: number): void {
  * The MP4 adds no clicks of its own: each one it has sits where the WebM already had one, give or
  * take `toleranceS` (the converter's pads and trims shift the audio by up to their total). For
  * real tab capture without a sound card (the server, and the macOS CI VM), whose stand-in audio
- * output glitches under load, so the WebM itself is not clean there. Past the 20 clicks listed,
- * only the counts can be compared.
+ * output glitches under load, so the WebM itself is not clean there. Times, not counts: AAC can
+ * split one glitch into more detections than the WebM's Opus gives (37 against 40 once, all at
+ * the same places).
  */
 export function expectNoNewClicks(mp4: ClickReport, webm: ClickReport, minEdges: number, toleranceS: number): void {
   expect(mp4.edges, 'beep edges found').toBeGreaterThanOrEqual(minEdges);
-  if (webm.count > webm.clicks.length) {
-    expect(mp4.count, 'clicks in the MP4 against the WebM').toBeLessThanOrEqual(webm.count);
-    return;
-  }
-  const added = mp4.clicks.filter((c) => !webm.clicks.some((w) => Math.abs(w.atS - c.atS) <= toleranceS));
+  const added = mp4.times.filter((t) => !webm.times.some((w) => Math.abs(w - t) <= toleranceS));
   expect(added, 'clicks in the MP4 that the WebM does not have').toEqual([]);
 }

@@ -40,10 +40,13 @@ emulation would otherwise keep every tab "visible". As for a user, Chrome brings
 the front once picked, so Trama records in the background.
 
 On the server it runs headed under Xvfb (headless Chromium captures a tab's picture but only
-silence). There is no sound card there: Chromium's stand-in output glitches under load, so the
-captured WebM has a few clicks of its own and the test only requires that the MP4 adds none; on
-macOS the WebM must be clean too. WebRTC needs a network route, which the server's test container
-has none of (`--network none`), so the WebRTC variant runs only on the macOS runner. Hiding a
+silence). There is no sound card there, nor on the macOS runner: the browser's stand-in output
+glitches under load, so the captured WebM has clicks of its own, and the test only requires that
+the MP4 adds none: each MP4 click must sit where the WebM has one (by time, not count, since AAC
+can split one glitch into several detections). WebRTC needs a network route, which the server's test container
+has none of (`--network none`), and on the macOS runner the loopback call does not connect
+either (probably macOS's local-network permission), so the WebRTC variants are skipped in both
+places for now; real Teams covers WebRTC in the manual session. Hiding a
 window by minimising it needs a window manager, so under Xvfb "hidden" means another tab in front;
 on macOS the window is minimised as well.
 
@@ -76,7 +79,9 @@ clicks in the WebM's and the MP4's sound (`tests/helpers/clicks.ts`). The macOS 
 whose hardware codecs fail now and then, so tests there get one retry. Its hardware encoder
 also now and then makes the first all-white frame of a marker slightly grey in the MP4, so that
 flash is found a frame or two late (50–95 ms, one marker in a run, the rest at 0 ms): the
-MP4-against-WebM check lets one flash per recording be up to 0.1 s late and logs it. Results are kept as the
+MP4-against-WebM check lets one flash per recording be up to 0.1 s late and logs it. When the
+VM is busy, the picture can also start after the first marker (1 s in: beep recorded, flash
+not), so the soak, like the real-capture tests, checks sync from the second marker on. Results are kept as the
 run's `mac-results` artifact (the soak's MP4 left out; the e2e sync test's is kept, to look into a
 failed attempt) for 14 days.
 
@@ -203,6 +208,8 @@ with speech or music. The original checklist:
 | 2026-11-17 | Headless Chromium (Playwright 1.65, server) | — | 8c (soak, synthetic), MP4 audio timing | Pass | Branch `mp4-audio-timing`, `SOAK_MINUTES=10`. Audio clock 0.50 % slow (unevenly). No bad events, heap 10 MB flat. MP4 (Opus) in 59 s; `audioRetime` 122 pads (3.19 s) and 10 trims (0.22 s). MP4 beeps within ±20 ms of the WebM's at all 25 markers (flashes identical); MP4 alone −48 to +5 ms, no drift. Without the fix it would have ended ~3 s out. Whether the cuts are audible is for the Mac check. |
 | 2026-11-17 | Chrome 157, Edge 156 (GitHub Actions macos-15 VM, synthetic stream) | Sequoia 15.8.2 | 8a, 8c (automated), MP4 audio timing, AAC priming | Pass | Run 44078454240, branch `mac-ci`: e2e suite and `SOAK_MINUTES=60` in each browser, 43 passed. Soak: 3,600 s, 322 / 320 MB, no bad events, heap 3 MB flat, repair 1.4 / 1.6 s, seeks exact. MP4 (AAC) in 472 / 497 s, heap 4–5 MB; `audioRetime` 180 / 177 pads (4.7 / 4.6 s, audio clock 0.13 % slow), no trims; no clicks in WebM or MP4; MP4 sync −43 to +16 / −48 to +42 ms at 25 markers, no drift. AVFoundation: playable, avc1 + aac, both tracks decoded to 3,600.1–3,600.3 s. An earlier run found the AAC MP4's sound a constant 41–47 ms late (encoder priming, 2112 frames); fixed by starting the audio that much earlier, with an edit list (`src/media/webm-to-mp4.ts`), then −10 to +3 ms against the WebM. One flaky e2e attempt in Chrome (MP4's first flash 95 ms after the WebM's, the rest exact; passed on retry). |
 | 2026-11-17 | Chromium 158 headed under Xvfb (server), real tab capture | — | 1, 3, 7b, 7f (`tests/capture`), 3 + 8c (`SOAK_CAPTURE=real`, 10 min) | Pass | Branch `real-capture`. Captured audio stereo 44.1 kHz with `echoCancellation`/`noiseSuppression`/`autoGainControl` `false`; WebM sync −41 to −79 ms, MP4 the same marker by marker. Chrome put the shared tab in front once picked, so Trama recorded in the background, as for a user. Soak: Trama hidden for 9 of the 10 min (past intensive throttling) and during the MP4 conversion; no `chunk-gap`, silence or track events, heap 4 MB flat, `maxWriteMs` ≤ 33; repair 0.85 s to 600.72 s; sync −49 to −82 ms at 25 markers, no drift; MP4 (Opus) in 156 s, 16 pads (0.37 s), matches the WebM. Clicks in the WebM (122) come from the server's stand-in sound output, not Trama; the MP4 adds none in the short test. WebRTC variant not run (no network route in the test container). |
+| 2026-11-18 | Chrome 157 (GitHub Actions macos-15 VM), real tab capture | Sequoia 15.8.2 | 3 + 8a + 8c (`SOAK_CAPTURE=real`, 120 min), 1, 3, 7b, 7f (`tests/capture`, 6 min hidden) | Pass | Run 44256666781, branch `real-capture`. Soak: Trama and the meeting tab hidden for 118 of the 120 min (window minimised) and during the MP4 conversion; 7,202 s, 682 MB, no bad events, heap 4 MB flat, `maxWriteMs` 479; repair 9.3 s; seeks exact. Sync −76 to −11 ms in the WebM, −76 to +3 ms in the MP4, 23 markers, no drift. MP4 (AAC) 824 MB in 1,010 s with Trama hidden, heap 5 MB; `audioRetime` 699 pads (17.2 s: the VM's audio clock 0.12 % slow). AVFoundation: playable, both tracks decoded to 7,202 s. Clicks from the VM's stand-in sound output: 4,898 in the WebM, 4,620 in the MP4. 6-min hidden test: 127 markers within −79 to +52 ms, no bad events. One synthetic e2e attempt failed with the VM encoder's `EncodingError` (WebM kept, message shown) and passed on retry. |
+| 2026-11-18 | Chrome 157, Edge 156 (GitHub Actions macos-15 VM) | Sequoia 15.8.2 | 8a, 8c (synthetic, 5 min), 1, 3, 7b, 7f (`tests/capture`) | Pass | Run 44279369951, on 76714a1 (one late flash allowed). Edge passed everything first time. Chrome needed two retries, both since handled in the tests: the synthetic soak's first marker (1 s in) had its beep but no flash yet, and the tab-capture MP4 had 40 detected clicks against the WebM's 37, all at the same times (AAC splitting the VM's glitches). Synthetic soak sync within ±56 ms (WebM) and ±68 ms (MP4) from the second marker on; 6-min hidden test 128 markers within −79 to +25 ms in Edge. WebRTC loopback did not connect on the runner, so those variants were skipped. |
 
 ## Known spike limitations
 

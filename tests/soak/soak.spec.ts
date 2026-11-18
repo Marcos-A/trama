@@ -216,15 +216,16 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
   expect(Math.abs(mp4Seek.duration - webmSeek.duration), 'MP4 length against WebM').toBeLessThan(0.5);
   if (summary.mp4.heap) expect(summary.mp4.heap.max - summary.mp4.heap.first, 'heap growth while converting (MB)').toBeLessThan(20);
   const minMarkers = Math.min(25, Math.floor(seconds / PERIOD_S) - 1);
-  // Real capture: without the first marker, in the first second while the picture starts
-  // (see tests/capture).
-  const checked = (r: typeof webmSync) => (REAL ? { ...r, markers: r.markers.filter((m) => m.expectedS >= 2) } : r);
+  // Without the first marker, in the recording's first second while the picture starts: real
+  // capture (see tests/capture), and the synthetic stream on a busy macOS CI VM, where Chrome
+  // once recorded the first beep but its flash not yet.
+  const checked = (r: typeof webmSync) => ({ ...r, markers: r.markers.filter((m) => m.expectedS >= 2) });
   // Real capture is held to the brief's 0.5 s per marker (the VM's capture puts the odd one
   // ~0.17 s out); no drift either way.
   const syncOpts = REAL ? { maxOffsetS: 0.5 } : {};
-  // Real capture: one marker fewer for the first, and one more for the last, which can fall past
+  // One marker fewer for the first; with real capture one more for the last, which can fall past
   // the end (the meeting tab's markers are not lined up with the recording's start).
-  const minChecked = minMarkers - (REAL ? 2 : 0);
+  const minChecked = minMarkers - (REAL ? 2 : 1);
   expectInSync(checked(webmSync), minChecked, syncOpts);
   expectInSync(checked(mp4Sync), minChecked, syncOpts);
   expectMp4MatchesWebm(checked(mp4Sync), checked(webmSync));

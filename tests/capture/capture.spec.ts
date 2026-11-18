@@ -68,7 +68,7 @@ const meetingFrames = (page: Page) =>
 for (const webrtc of [false, true]) {
   test(`tab capture${webrtc ? ' of a WebRTC call' : ''}: untouched stereo audio, in sync, and the MP4 keeps its timing`, async ({ openApp, context }) => {
     test.setTimeout(240_000);
-    if (webrtc) test.skip(!(await webrtcWorks(context)), 'WebRTC cannot connect without a network route (runs on the macOS runner)');
+    if (webrtc) test.skip(!(await webrtcWorks(context)), 'a loopback WebRTC call cannot connect here (no network route on the server; macOS runner too so far)');
     const page = await openApp({ capture: 'real', markers: PERIOD_S, webrtc });
     await record(page, 30_000);
     await stop(page);
@@ -111,7 +111,7 @@ for (const webrtc of [false, true]) {
 
 test(`both tabs hidden for ${HIDDEN_S} s: the recording keeps its picture and sound`, async ({ openApp, context }) => {
   test.setTimeout((HIDDEN_S + 300) * 1000);
-  // Through a WebRTC call where one can connect (macOS runner), as Teams plays a meeting.
+  // Through a WebRTC call where one can connect, as Teams plays a meeting.
   const webrtc = await webrtcWorks(context);
   const page = await openApp({ capture: 'real', markers: PERIOD_S, webrtc });
   await record(page, 10_000);

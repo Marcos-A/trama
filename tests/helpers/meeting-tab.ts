@@ -159,8 +159,8 @@ export async function hideTabs(app: Page): Promise<() => Promise<void>> {
 
 /**
  * Whether a loopback WebRTC call can connect here. Chromium gathers no ICE candidates without a
- * network route, so not in scripts/test.sh's `--network none` container; it can on the macOS
- * runner.
+ * network route, so not in scripts/test.sh's `--network none` container; on the macOS CI runner
+ * it has not connected either (probably macOS's local-network permission).
  */
 export async function webrtcWorks(context: BrowserContext): Promise<boolean> {
   const page = await context.newPage();
