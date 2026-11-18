@@ -27,6 +27,7 @@ import { join } from 'node:path';
 import { expectInSync, expectMp4MatchesWebm, measureSync } from '../helpers/av-sync.ts';
 import { avfoundationCheck, expectPlaysInQuickTime, onMac, saveOpfsFile } from '../helpers/avfoundation.ts';
 import { expectNoClicks, findClicks } from '../helpers/clicks.ts';
+import type { RetimeStats } from '../../src/media/audio-retime.ts';
 import { expect, fakeSavePicker, opfsFiles, playerReady, record, test as base } from '../e2e/fixtures.ts';
 import { hideTabs } from '../helpers/meeting-tab.ts';
 import { launchRealBrowser } from '../helpers/real-browser.ts';
@@ -197,14 +198,16 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
     maxWriteMs: Math.max(...entries.filter((e) => e.ev === 'sample').map((e) => e.data!.maxWriteMs as number)),
     repair: one('repair'),
     webm: { bytes: webm.size, playerDuration: player.duration, seeks: webmSeek.seeks, syncMs: offsets(webmSync), audioClockSkew: webmSync.audioClockSkew },
-    clicks: { webm: webmClicks, mp4: mp4Clicks },
+    clicks: { webm: webmClicks, mp4: mp4Clicks, mp4NearestCut: nearestCuts(mp4Clicks.times, (one('mp4').audioRetime as RetimeStats | undefined)?.cuts ?? []) },
     quicktime,
     mp4: { ...one('mp4'), heap: mp4Samples.length ? heapTrend(mp4Samples) : null, seeks: mp4Seek.seeks, syncMs: offsets(mp4Sync), audioClockSkew: mp4Sync.audioClockSkew },
   };
   writeFileSync(test.info().outputPath('soak-summary.json'), JSON.stringify(summary, null, 2));
   writeFileSync(test.info().outputPath('soak-log.json'), JSON.stringify(entries, null, 2));
   writeFileSync(test.info().outputPath('soak-sync.json'), JSON.stringify({ webmSync, mp4Sync }, null, 2));
-  console.log(JSON.stringify(summary, null, 2));
+  // The cut list is in soak-summary.json; the printed copy keeps the log short.
+  const retime = one('mp4').audioRetime as RetimeStats | undefined;
+  console.log(JSON.stringify(retime ? { ...summary, mp4: { ...summary.mp4, audioRetime: { ...retime, cuts: `${retime.cuts.length} listed` } } } : summary, null, 2));
 
   expect(summary.stopped).toMatchObject({ reason: 'user' });
   expect(summary.badEvents).toEqual([]);
@@ -242,3 +245,16 @@ test(`${MINUTES}-minute recording: no gaps, heap flat, repairs, seeks, converts,
     expectPlaysInQuickTime(quicktime!, webmSync.durationS);
   }
 });
+
+/**
+ * For each MP4 click, the converter's nearest pad or trim (src/media/audio-retime.ts): a click a
+ * few ms from a cut points at the fades, one far from any at the encoder. Cut times are on the
+ * encoder's timeline, so with AAC they can sit up to the priming (~48 ms) off the decoded MP4's.
+ */
+function nearestCuts(clicks: number[], cuts: RetimeStats['cuts']) {
+  return clicks.map((atS) => {
+    let best: RetimeStats['cuts'][number] | null = null;
+    for (const c of cuts) if (!best || Math.abs(c.atS - atS) < Math.abs(best.atS - atS)) best = c;
+    return { atS, cut: best, distanceMs: best ? Math.round((best.atS - atS) * 1000) : null };
+  });
+}

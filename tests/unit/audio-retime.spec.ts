@@ -18,20 +18,22 @@ function packets(count: number, stamp: (i: number) => number): PacketTiming[] {
   return Array.from({ length: count }, (_, i) => ({ timestamp: stamp(i), frames: N }));
 }
 
-/** Runs `count` sine chunks through the retimer; returns the output, flattened, and its samples. */
+/** Runs one sine chunk per packet (of the packet's size) through the retimer; returns the output, flattened, and its samples. */
 async function run(stamps: PacketTiming[], startS = 0, interleaved = false) {
   const { process, stats } = retimer(packetTimeline(iterate(stamps), SR), startS);
   const out: number[] = [];
   const timestamps: { t: number; n: number }[] = [];
-  for (let k = 0; k < stamps.length; k++) {
-    const data = new Float32Array(N * 2);
-    for (let i = 0; i < N; i++) {
-      const x = Math.sin((2 * Math.PI * 440 * (k * N + i)) / SR);
+  let first = 0; // frames before this chunk, so the sine runs on unbroken across chunks
+  for (const { frames: n } of stamps) {
+    const data = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) {
+      const x = Math.sin((2 * Math.PI * 440 * (first + i)) / SR);
       if (interleaved) data[2 * i] = data[2 * i + 1] = x;
-      else data[i] = data[N + i] = x;
+      else data[i] = data[n + i] = x;
     }
     const format = interleaved ? 'f32' : 'f32-planar';
-    const sample = new AudioSample({ data, format, numberOfChannels: 2, sampleRate: SR, timestamp: (k * N) / SR });
+    const sample = new AudioSample({ data, format, numberOfChannels: 2, sampleRate: SR, timestamp: first / SR });
+    first += n;
     const result = await process(sample);
     for (const s of result === null ? [] : Array.isArray(result) ? result : [result]) {
       expect(s.format, 'output keeps the input layout').toBe(format);
@@ -85,7 +87,7 @@ test('pre-skip: decoded frames are counted from after it, packets keep their sta
 test('jitter alone is left alone', async () => {
   // ±10 ms around the right place, no skew.
   const r = await run(packets(500, (i) => i * 0.06 + 0.01 * Math.sin(i * 1.7)));
-  expect(r.stats).toEqual({ paddedS: 0, pads: 0, trimmedS: 0, trims: 0 });
+  expect(r.stats).toEqual({ paddedS: 0, pads: 0, trimmedS: 0, trims: 0, cuts: [] });
   expect(r.out.length).toBe(500 * N);
   expectContinuous(r);
 });
@@ -113,6 +115,7 @@ for (const interleaved of [false, true]) test(`a 2 s gap becomes 2 s of silence 
   const r = await run(stamps, 0, interleaved);
   expect(r.stats.pads).toBe(1);
   expect(r.stats.paddedS).toBeCloseTo(2, 3);
+  expect(r.stats.cuts, 'the pad is listed where it went in').toEqual([{ atS: 3, kind: 'pad', s: 2 }]);
   expect(r.out.length).toBe(100 * N + 2 * SR);
   // Silence from just after where chunk 50 would have started to where it was recorded.
   const from = 50 * N + 120;
@@ -129,12 +132,23 @@ test('fast clock with interleaved samples (as Chrome decodes): trims keep the la
   expectContinuous(r);
 });
 
-test('audio behind by more than a chunk: whole chunks are dropped', async () => {
+test('audio behind by more than a chunk: trimmed over several chunks, smoothly', async () => {
   // The stamps step back 0.2 s at chunk 50 (as if the clock had been running fast).
   const stamps = packets(100, (i) => i * 0.06 - (i >= 50 ? 0.2 : 0));
   const r = await run(stamps);
   expect(Math.abs(r.out.length / SR - (stamps[99].timestamp + 0.06))).toBeLessThan(0.03);
   expect(r.stats.trimmedS).toBeGreaterThan(0.17);
+  expectContinuous(r);
+});
+
+test('a gap after short chunks (under two fades): the silence still fades in and out', async () => {
+  // 200-frame chunks (about 4 ms, shorter than two 2.5 ms fades), 0.1 s gap at chunk 500.
+  const n = 200;
+  const stamps = Array.from({ length: 1000 }, (_, i) => ({ timestamp: (i * n) / SR + (i >= 500 ? 0.1 : 0), frames: n }));
+  const r = await run(stamps);
+  expect(r.stats.pads).toBeGreaterThan(0);
+  expect(r.stats.paddedS).toBeCloseTo(0.1, 2);
+  expectContinuous(r);
 });
 
 test('start offset: the output timeline starts at the conversion start', async () => {
@@ -148,6 +162,6 @@ test('AAC priming: a start past the first packet puts the audio before zero, the
   const priming = 2112 / SR;
   const r = await run(packets(20, (i) => (i * N) / SR), priming);
   expect(r.timestamps[0].t).toBeCloseTo(-priming, 6);
-  expect(r.stats).toEqual({ paddedS: 0, pads: 0, trimmedS: 0, trims: 0 });
+  expect(r.stats).toEqual({ paddedS: 0, pads: 0, trimmedS: 0, trims: 0, cuts: [] });
   expectContinuous(r);
 });

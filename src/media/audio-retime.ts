@@ -18,7 +18,11 @@
 //  - source behind by more than the dead band (an audio clock running fast): frames are dropped;
 //  - otherwise the chunk goes through as it is. Packet stamps jitter by ~10 ms; the 20 ms dead
 //    band leaves that alone.
-// Each cut gets a short fade (a crossfade when dropping), so it does not click.
+// Each cut gets a short fade (a crossfade when dropping), so it does not click: no cut is ever made
+// without one. On a chunk shorter than two fades the fade is shortened to half the chunk, and a
+// trim never drops a whole chunk (that would butt the previous chunk's end against the next
+// one's start): each chunk drops at most all but one fade's worth, and the chunks after it take
+// the rest.
 //
 // Why pad and trim rather than resample: what has to be fixed in practice is gaps (tab audio
 // stalling or the recorder skipping), where silence is the right answer and stretching is not;
@@ -37,7 +41,12 @@ export interface RetimeStats {
   /** Audio dropped, in seconds, and how many times. */
   trimmedS: number;
   trims: number;
+  /** Where the first MAX_CUTS corrections fall in the output (s, on the encoder's timeline), and their size (s), to match clicks against. */
+  cuts: { atS: number; kind: 'pad' | 'trim'; s: number }[];
 }
+
+/** Corrections listed in `RetimeStats.cuts`; the counts and totals keep going past it. */
+export const MAX_CUTS = 1000;
 
 export interface RetimeOptions {
   /** Errors up to this size (seconds) are left alone. */
@@ -144,7 +153,10 @@ export function retimer(
   startS: number,
   { deadBandS = 0.02, fadeS = 0.0025 }: RetimeOptions = {},
 ): { process: (sample: AudioSample) => Promise<AudioSample | AudioSample[] | null>; stats: RetimeStats } {
-  const stats: RetimeStats = { paddedS: 0, pads: 0, trimmedS: 0, trims: 0 };
+  const stats: RetimeStats = { paddedS: 0, pads: 0, trimmedS: 0, trims: 0, cuts: [] };
+  const cut = (atS: number, kind: 'pad' | 'trim', s: number) => {
+    if (stats.cuts.length < MAX_CUTS) stats.cuts.push({ atS: Math.round(atS * 1000) / 1000, kind, s: Math.round(s * 10000) / 10000 });
+  };
   let inFrames = 0; // decoded frames seen so far, at `rate`
   let outStartS: number | null = null;
   let outFrames = 0; // frames sent on, at `rate`
@@ -196,47 +208,41 @@ export function retimer(
     if (outStartS === null) outStartS = recordedS;
     const outS = outStartS + outFrames / sr;
     const errorS = recordedS - outS;
-    const fade = Math.max(1, Math.round(fadeS * sr));
+    // Never longer than half the chunk, so a fade always fits; under 2 frames, no correction.
+    const fade = Math.min(Math.max(1, Math.round(fadeS * sr)), Math.floor(n / 2));
 
-    if (errorS > deadBandS) {
+    if (errorS > deadBandS && fade >= 1) {
       // Source ahead: silence before this chunk (after a fade-out over its first frames).
       const gap = Math.round(errorS * sr);
       stats.paddedS += gap / sr;
       stats.pads++;
+      cut(outS, 'pad', gap / sr);
       const out: AudioSample[] = [];
       let at = outS;
-      if (n >= 2 * fade) {
-        const planes = planesOf(sample);
-        for (const p of planes) {
-          for (let i = 0; i < fade; i++) {
-            p[i] *= 1 - (i + 0.5) / fade; // head fades out
-            p[fade + i] *= (i + 0.5) / fade; // rest fades back in after the silence
-          }
+      const planes = planesOf(sample);
+      for (const p of planes) {
+        for (let i = 0; i < fade; i++) {
+          p[i] *= 1 - (i + 0.5) / fade; // head fades out
+          p[fade + i] *= (i + 0.5) / fade; // rest fades back in after the silence
         }
-        out.push(make(planes, fade, sr, at));
-        at += fade / sr;
-        out.push(...silence(gap, planes.length, sr, at));
-        at += gap / sr;
-        out.push(make(planes.map((p) => p.subarray(fade)), n - fade, sr, at));
-      } else {
-        out.push(...silence(gap, sample.numberOfChannels, sr, at));
-        at += gap / sr;
-        sample.setTimestamp(at);
-        out.push(sample);
       }
+      out.push(make(planes, fade, sr, at));
+      at += fade / sr;
+      out.push(...silence(gap, planes.length, sr, at));
+      at += gap / sr;
+      out.push(make(planes.map((p) => p.subarray(fade)), n - fade, sr, at));
       outFrames += gap + n;
       return out;
     }
 
-    if (errorS < -deadBandS) {
-      // Source behind: drop frames from the start of this chunk, crossfading over the cut.
-      const drop = Math.round(-errorS * sr);
+    if (errorS < -deadBandS && fade >= 1) {
+      // Source behind: drop frames from the start of this chunk, crossfading over the cut. At most
+      // all but one fade's worth: the crossfade needs the frames after the cut, and the next
+      // chunks take whatever is left.
+      const drop = Math.min(Math.round(-errorS * sr), n - fade);
       stats.trims++;
-      if (drop + fade >= n) {
-        stats.trimmedS += n / sr;
-        return null; // the whole chunk; the next one carries on with what is left
-      }
       stats.trimmedS += drop / sr;
+      cut(outS, 'trim', drop / sr);
       const planes = planesOf(sample);
       for (const p of planes) {
         for (let i = 0; i < fade; i++) {
