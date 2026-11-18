@@ -37,43 +37,30 @@ State on 2026-11-18:
 Goal: know whether the click at 182.9 s sits on one of the converter's pads or trims (a bug in
 Trama's fades) or away from them (an AAC encoder glitch on the VM).
 
-1. **Record where each correction falls.** In `src/media/audio-retime.ts`, `retimer()` counts
-   pads (`stats.pads++`) and trims (`stats.trims++`) and keeps only totals. Also keep, for each
-   one, the time in the output audio where it lands (`at`, seconds), its kind and its size, in
-   a capped list (say the first 2,000) so a long recording's log stays small. Add it to
-   `RetimeStats` as an optional field (e.g. `cuts?: { atS: number; kind: 'pad' | 'trim'; s: number }[]`);
-   it reaches the app log through `audioRetime` in `src/media/webm-to-mp4.ts`. Keep the UI and
-   the log's other fields unchanged.
-2. **Match clicks to cuts in the tests.** In `tests/soak/soak.spec.ts`, for each MP4 click
-   (`mp4Clicks.times`, from `tests/helpers/clicks.ts`) find the nearest cut and record the
-   distance in ms, its kind and size in the summary (`soak-summary.json`, e.g.
-   `clicks.mp4NearestCut`), and print it. Do this before the `expectNoClicks` assertions so it
-   is in the output even when they fail. Mind the AAC priming offset (the MP4's audio starts
-   `primingS` earlier, see `webm-to-mp4.ts`) when comparing times. If cheap, do the same in
-   `tests/e2e/sync.spec.ts`.
-3. **Check the cuts that have no fade.** `tests/unit/audio-retime.spec.ts` already feeds
-   `retimer()` a sine and checks the largest step between frames (`expectContinuous`, under
-   0.12), for slow and fast clocks and gaps. Two paths in `retimer()` cut without a fade, and are
-   the first suspects:
-   - a pad on a chunk shorter than two fades (`n < 2 * fade`, under ~240 frames at 48 kHz):
-     the silence is inserted with no fade-out or fade-in;
-   - a trim that drops a whole chunk (`drop + fade >= n`, `return null`): no crossfade, so the
-     previous chunk's end meets the next chunk's start.
-   Add unit tests that force each path (short chunks; a jump behind by more than a chunk) and
-   check `expectContinuous`; the existing "audio behind by more than a chunk: whole chunks are
-   dropped" test does not call it. Fix whichever fails.
-4. **Reproduce on the server first** (free, no VM noise):
-   `SOAK_MINUTES=60 bash scripts/test.sh --project=soak --output=soak-results`. Headless
-   Chromium's fake audio clock runs 0.1–3 % slow, so there are many pads; its MP4 audio is Opus,
-   not AAC. Do not run it alongside other projects' browser suites.
-5. **Read the result:**
-   - Clicks on cuts (within a few ms) → fix the fade in `retimer()` (longer fade, or cut at a
-     zero crossing), with a unit test, then go to item 2.
-   - Clicks away from cuts, only on the VM with AAC → most likely the VM's hardware encoder.
+Done on 2026-11-18 (branch `mp4-clicks`, merged to `main`):
+
+- `retimer()` had two cuts without a fade, both now fixed and unit-tested
+  (`tests/unit/audio-retime.spec.ts`, `expectContinuous`): a trim of 57.5 ms or more dropped a
+  whole chunk with no crossfade (a jump of 1.0 between frames; the failed run's 4 trims averaged
+  50 ms, so this is a likely cause of its click), and a pad on a chunk under two fades had no
+  fade (0.87). A trim now drops at most all but one fade's worth per chunk, and fades shrink to
+  fit short chunks.
+- `RetimeStats.cuts` lists where the first 1,000 pads and trims fall (in the app log's
+  `mp4.audioRetime`), and the soak's summary matches each MP4 click to its nearest cut
+  (`clicks.mp4NearestCut`, printed before the click assertions).
+
+Left:
+
+1. **Server soak result:** `SOAK_MINUTES=60 bash scripts/test.sh --project=soak
+   --output=soak-results` was started on the fix (results in `soak-results/`, summary in
+   `soak-summary.json`). Opus, not AAC, on the server. Record it in `docs/manual-tests.md`.
+2. **Read the Mac runs from item 2:**
+   - no MP4 clicks → the fix was it; note it in the Results rows;
+   - a click a few ms from a cut (`distanceMs`; cut times are on the encoder's timeline, up to
+     ~48 ms of AAC priming off) → the fades still click: look at that cut's kind and size;
+   - a click far from any cut, only on the VM with AAC → most likely the VM's hardware encoder.
      Ask Marcos whether to make MP4 clicks report-only on the VM (as for real capture) and add
      a line to `docs/limitations.md` ("seen only on the macOS test VM").
-6. `bash scripts/test.sh` (type check + full suite) must pass. Work on a branch and merge to
-   `main` when Marcos agrees.
 
 ### 2. Rerun the Mac soak one browser at a time
 
