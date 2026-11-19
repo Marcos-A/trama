@@ -290,3 +290,7 @@ footer {
   font-size: var(--mida-detall);
   color: var(--fum);
 }
+
+footer a {
+  color: inherit;
+}

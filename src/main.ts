@@ -569,20 +569,49 @@ el('baixa-registre').addEventListener('click', () => {
 
 interface BuildInfo {
   environment: string;
-  build: { shortSha: string };
-  release: { version: string } | null;
+  build: { sha: string; shortSha: string };
+  release: { tag: string } | null;
 }
 
-// Shows which build is deployed, so both URLs can be checked after a deploy.
+const REPO_URL = 'https://github.com/Marcos-A/trama';
+const ENVIRONMENT_LABELS: Record<string, string> = {
+  production: 'Producció',
+  preview: 'Preview',
+  development: 'Desenvolupament',
+};
+
+/** A footer link; a new tab, so following it never leaves a recording. */
+function footerLink(text: string, href: string): HTMLAnchorElement {
+  const a = document.createElement('a');
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.textContent = text;
+  return a;
+}
+
+/**
+ * Identifies the deployed build, in the same form as the other apps on this server:
+ * "v0.1 · 20093ea" in production, "Build 20093ea" before any release, "Preview · 20093ea"
+ * elsewhere; the tag and commit link to GitHub, the full details are in the tooltip.
+ */
 async function showBuild(): Promise<void> {
-  const footer = document.getElementById('build');
-  if (!footer) return;
+  const build = document.getElementById('build');
+  if (!build) return;
   try {
     const res = await fetch('/build-info.json', { cache: 'no-cache' });
     if (!res.ok) return;
     const info = (await res.json()) as BuildInfo;
-    const version = info.release ? `v${info.release.version} · ` : '';
-    footer.textContent = `${version}${info.build.shortSha} · ${info.environment}`;
+    const { sha, shortSha } = info.build;
+    const release = info.release;
+    const label = ENVIRONMENT_LABELS[info.environment] ?? info.environment;
+    const commit = footerLink(shortSha, `${REPO_URL}/commit/${sha}`);
+    let parts: (string | Node)[];
+    if (info.environment !== 'production') parts = [label, ' · ', commit];
+    else if (release) parts = [footerLink(release.tag, `${REPO_URL}/releases/tag/${release.tag}`), ' · ', commit];
+    else parts = ['Build ', commit];
+    build.title = [`Darrera versió: ${release?.tag ?? 'cap'}`, `Commit desplegat: ${sha}`, `Entorn: ${label}`].join(' · ');
+    build.replaceChildren(' · ', ...parts);
   } catch {
     // No build info in dev; nothing to show.
   }
