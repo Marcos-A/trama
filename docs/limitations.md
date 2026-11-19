@@ -79,9 +79,12 @@ Untested, and still to check in a session with real Teams:
 - **Desa en MP4** keeps the sound on the WebM's recorded timing: where the recording has a gap,
   or the tab's audio clock ran slower than the computer's, silence is inserted; where it ran
   faster, a little audio is skipped. Each correction brings the sound back within 20 ms of
-  where it was recorded and has a 2.5 ms fade, so it should not click; the log's
-  `mp4.audioRetime` counts them. On the Mac the clocks agree closely (0.12–0.13 % on the test
-  VM: about one 25 ms correction every 10–20 s).
+  where it was recorded and fades in and out (2.5 ms, less in very short chunks), so it should
+  not click: 60-minute test recordings in Chrome and Edge had no clicks in the MP4. Builds
+  before v0.1 could click there (a skip of 57.5 ms or more, or silence inserted into a very
+  short chunk, had no fade). The log's `mp4.audioRetime` counts the corrections and lists
+  where they fall. On the Mac the clocks agree closely (0.12–0.31 % on the test VM: about one
+  25 ms correction every 5–20 s).
 - AAC: the MP4 skips the encoder's 2112-frame priming with an edit list. 2112 is the delay of
   Apple's encoder, which Chrome and Edge use on macOS; Windows' encoder is untested, and a
   different delay there would put the sound a few tens of milliseconds early or late.
