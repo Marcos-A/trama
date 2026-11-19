@@ -105,3 +105,9 @@ tests/           Playwright tests: unit/ (Node), e2e/ (headless Chromium), fixtu
 docs/            plan, original brief, manual test results and limitations log
 docs/brand/      brand pack: logo masters, colour and usage guide
 ```
+
+## Development note
+
+This project was developed under human direction and review, with support from artificial
+intelligence tools for parts of the code, debugging and documentation. Decisions about how
+the system works, and responsibility for the final result, rest with the project maintainer.

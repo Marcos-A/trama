@@ -111,3 +111,10 @@ tests/           pruebas de Playwright: unit/ (Node), e2e/ (Chromium sin interfa
 docs/            plan, encargo original, resultados de las pruebas manuales y registro de limitaciones
 docs/brand/      paquete de marca: originales del logotipo, colores y guía de uso
 ```
+
+## Nota sobre el desarrollo
+
+Este proyecto se ha desarrollado bajo dirección y revisión humanas, con el apoyo de
+herramientas de inteligencia artificial para partes del código, la depuración y la
+documentación. Las decisiones sobre el funcionamiento del sistema, y la responsabilidad del
+resultado final, corresponden al mantenedor del proyecto.
