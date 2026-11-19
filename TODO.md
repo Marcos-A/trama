@@ -8,46 +8,11 @@ those docs, not here.
 
 Ask Marcos before committing, pushing, tagging, publishing a release or deploying.
 
-## Now: release v0.1
+## Done: v0.1
 
-State on 2026-11-19:
-
-- `main` has one code change since production's `336650d`: the MP4 click fix (`da52d12`,
-  `retimer()` in `src/media/audio-retime.ts` cut without a fade on trims of ≥ 57.5 ms and on
-  pads in short chunks). The rest is tests, test scripts, the Mac workflow, docs and the version
-  number (0.1.0). No tag and no GitHub release yet.
-- Done: the MP4 click investigation and the Mac reruns one browser at a time (runs
-  44381063662 Chrome, 44408947226 Edge, on `0dbbe2f`). Both browsers' MP4s were click-free in
-  60-minute soaks and neither hung; results in `docs/manual-tests.md`. The two test-helper bugs
-  those runs found are fixed (`measureSync` dropping the last marker on a slow audio clock;
-  `DevToolsActivePort` read before Chrome wrote the port).
-- Mac runs: one browser per run (`-f browsers=chrome` or `msedge`); two 60-minute soaks in
-  parallel stalled the VM (run 44305733454). macOS minutes are free (public repo, standard
-  `macos-15` runner).
-
-- Decided 2026-11-19, two VM-only failures from run 44381063662, both now let through by the
-  tests: a flash lost as the window minimises in the hidden capture test (one marker, with its
-  beep, near the minimise), and a lone MP4 flash up to 0.15 s late (was 0.1 s; 103 ms seen,
-  the VM encoder's grey first frame).
-
-### Then: tag, release and deploy
-
-With Marcos's go-ahead for each step. Recommended: tag after the commit with the test fixes and
-these docs, without another Mac run.
-
-1. Commit the docs (and any fix from the decisions above) before the tag, so the tag's docs match
-   the code.
-2. Tag `v0.1` and publish the GitHub release: what v0.1 does, the MP4 click fix (v0.1 is not
-   docs-only), its limitations (link `docs/limitations.md`; not tested with a real Teams
-   meeting), and the docs changes. No Claude or Anthropic credit anywhere.
-3. Preview: bring the `preview` branch (worktree `/srv/apps/trama-preview`) up to the release
-   commit, `bash scripts/deploy_preview.sh`, check the site.
-4. Production: from `/srv/apps/trama` with `main` checked out, `bash scripts/deploy_production.sh`.
-5. On both sites: `/build-info.json` shows the release commit and `release` v0.1; headers have
-   CSP `connect-src 'self'` and `Permissions-Policy: display-capture=(self), camera=(), microphone=()`
-   (`curl -sI`).
-6. Update the status in `CLAUDE.md` (local, not committed) and
-   `~/server-ops/docs/services/trama.md`.
+Released 2026-11-19: tag `v0.1` on `20093ea`, GitHub release published, deployed to preview and
+production (`/build-info.json` shows release v0.1 on both). Mac runs: one browser per run
+(`-f browsers=chrome` or `msedge`); two 60-minute soaks in parallel stalled the VM.
 
 ## Open, ask Marcos first
 
