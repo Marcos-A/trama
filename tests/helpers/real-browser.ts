@@ -39,8 +39,14 @@ export async function launchRealBrowser(
     { stdio: 'ignore' },
   );
   const portFile = join(profile, 'DevToolsActivePort');
-  for (let i = 0; i < 300 && !existsSync(portFile); i++) await new Promise((r) => setTimeout(r, 100));
-  const port = readFileSync(portFile, 'utf8').split('\n')[0];
+  // Chrome creates the file before it writes the port, so wait for a port number, not the file.
+  const readPort = () => (existsSync(portFile) ? readFileSync(portFile, 'utf8').split('\n')[0].trim() : '');
+  let port = readPort();
+  for (let i = 0; i < 300 && !/^\d+$/.test(port); i++) {
+    await new Promise((r) => setTimeout(r, 100));
+    port = readPort();
+  }
+  if (!/^\d+$/.test(port)) throw new Error(`no DevTools port in ${portFile} after 30 s`);
   const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { noDefaults: true });
   return {
     context: browser.contexts()[0],

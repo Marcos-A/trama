@@ -161,7 +161,7 @@ export async function measureSync(
         return { k, expectedS: expectedA, audioS: a, videoS: v, offsetS: a === null || v === null ? null : v - a };
       }
 
-      const markers = [];
+      const markers: Awaited<ReturnType<typeof marker>>[] = [];
       let spacing = periodS;
       const [a0] = from ? [] : await beeps(0, Math.min(durationS, periodS + 2));
       if (from) {
@@ -178,12 +178,21 @@ export async function measureSync(
           count <= maxMarkers
             ? [...Array(count).keys()]
             : [...new Set([...Array(maxMarkers).keys()].map((i) => Math.round((i * (count - 1)) / (maxMarkers - 1))))];
-        for (const k of ks) {
+        const measure = async (k: number) => {
           const expected = a0 + k * spacing;
-          if (expected > durationS - 0.3) break;
           const m = await marker(k, expected, expected);
           if (m.audioS !== null && k > 0) spacing = (m.audioS - a0) / k;
           markers.push(m);
+        };
+        for (const k of ks) {
+          if (a0 + k * spacing > durationS - 0.3) {
+            // A slow audio clock stretches the spacing, so the last marker counted from the first
+            // two beeps can fall past the end. Measure the last one that fits instead.
+            const kMax = Math.floor((durationS - 0.5 - a0) / spacing);
+            if (kMax > (markers.at(-1)?.k ?? -1)) await measure(kMax);
+            break;
+          }
+          await measure(k);
         }
       }
       input.dispose();
