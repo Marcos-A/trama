@@ -112,6 +112,18 @@ docs/            plan, encargo original, resultados de las pruebas manuales y re
 docs/brand/      paquete de marca: originales del logotipo, colores y guía de uso
 ```
 
+## Licencia
+
+Copyright © 2026 Marcos Alcocer-Gil.
+
+Trama es software libre: puedes redistribuirlo y modificarlo según los términos de la
+[Licencia Pública General Affero de GNU](LICENSE), versión 3 o (si lo prefieres) cualquier
+versión posterior. Se distribuye sin ninguna garantía.
+
+El nombre y el logotipo de Trama (`docs/brand/`, `public/logo/`, `public/icons/`,
+`public/favicon.ico`) no están cubiertos por esta licencia; las bifurcaciones deben usar un
+nombre y un logotipo propios.
+
 ## Nota sobre el desarrollo
 
 Este proyecto se ha desarrollado bajo dirección y revisión humanas, con el apoyo de

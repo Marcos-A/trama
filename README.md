@@ -106,6 +106,17 @@ docs/            plan, original brief, manual test results and limitations log
 docs/brand/      brand pack: logo masters, colour and usage guide
 ```
 
+## License
+
+Copyright © 2026 Marcos Alcocer-Gil.
+
+Trama is free software: you can redistribute it and/or modify it under the terms of the
+[GNU Affero General Public License](LICENSE), version 3 or (at your option) any later
+version. It is distributed without any warranty.
+
+The Trama name and logo (`docs/brand/`, `public/logo/`, `public/icons/`, `public/favicon.ico`)
+are not covered by this license; forks must use their own name and logo.
+
 ## Development note
 
 This project was developed under human direction and review, with support from artificial
