@@ -25,15 +25,10 @@ State on 2026-11-19:
   parallel stalled the VM (run 44305733454). macOS minutes are free (public repo, standard
   `macos-15` runner).
 
-### Decide (Marcos): two VM-only test failures from run 44381063662
-
-1. **Missing flash when the window minimises:** in the 6-min hidden capture test, the marker at
-   11 s had its beep but no flash in the WebM, exactly when the window was minimised; the other
-   126 markers were within 79 ms. Either allow a missing flash at the minimise moment in
-   `tests/capture`, or list it in `docs/limitations.md`.
-2. **MP4 flash 100–110 ms late:** marker 298's MP4 flash came 103 ms after the WebM's (the VM
-   encoder's grey first frame, see `expectMp4MatchesWebm` in `tests/helpers/av-sync.ts`). Either
-   raise its 0.1 s allowance for the lone late flash, or keep relying on retries.
+- Decided 2026-11-19, two VM-only failures from run 44381063662, both now let through by the
+  tests: a flash lost as the window minimises in the hidden capture test (one marker, with its
+  beep, near the minimise), and a lone MP4 flash up to 0.15 s late (was 0.1 s; 103 ms seen,
+  the VM encoder's grey first frame).
 
 ### Then: tag, release and deploy
 

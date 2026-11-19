@@ -83,8 +83,11 @@ playable, H.264 + AAC, same length, both tracks decode to the end. Both suites a
 clicks in the WebM's and the MP4's sound (`tests/helpers/clicks.ts`). The macOS runner is a VM
 whose hardware codecs fail now and then, so tests there get one retry. Its hardware encoder
 also now and then makes the first all-white frame of a marker slightly grey in the MP4, so that
-flash is found a frame or two late (50–95 ms, one marker in a run, the rest at 0 ms): the
-MP4-against-WebM check lets one flash per recording be up to 0.1 s late and logs it. When the
+flash is found a frame or two late (50–103 ms, one marker in a run, the rest at 0 ms): the
+MP4-against-WebM check lets one flash per recording be up to 0.15 s late and logs it. In the
+hidden real-capture test, the frame on screen as the window minimises can be lost (beep, no
+flash; seen once on the VM): one such marker within a marker period of the minimise is let
+through and logged. When the
 VM is busy, the picture can also start after the first marker (1 s in: beep recorded, flash
 not), so the soak, like the real-capture tests, checks sync from the second marker on. Results are kept as the
 run's `mac-results` artifact (the soak's MP4 left out; the e2e sync test's is kept, to look into a
