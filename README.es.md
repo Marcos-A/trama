@@ -17,8 +17,8 @@ lo que se dice y nunca se pierda el hilo.
 pestaña de Chrome o Edge con su audio, repara el archivo para que se pueda avanzar y
 retroceder, y lo guarda en WebM o MP4. Se ha probado en macOS con la captura real de pestañas
 de Chrome y una pestaña que hace de reunión (pruebas automáticas, de hasta dos horas con la
-ventana minimizada) y a mano con pestañas normales (hasta dos horas y media), pero todavía no
-con una reunión real de Teams. Lo que aún no se ha probado y las limitaciones conocidas están
+ventana minimizada), a mano con pestañas normales (hasta dos horas y media) y con una reunión
+real de Teams (54 minutos en Chrome). Lo que aún no se ha probado y las limitaciones conocidas están
 en [docs/limitations.md](docs/limitations.md) (en inglés).
 
 ## Qué hará

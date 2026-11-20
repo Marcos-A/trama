@@ -17,8 +17,8 @@ no se'n perdi mai el fil.
 pestanya de Chrome o Edge amb el seu àudio, repara el fitxer perquè s'hi pugui avançar i
 retrocedir, i el desa en WebM o MP4. S'ha provat a macOS amb la captura real de pestanyes de
 Chrome i una pestanya que fa de reunió (proves automàtiques, de fins a dues hores amb la
-finestra minimitzada) i a mà amb pestanyes normals (fins a dues hores i mitja), però encara no
-amb una reunió real de Teams. El que encara no s'ha provat i les limitacions conegudes són a
+finestra minimitzada), a mà amb pestanyes normals (fins a dues hores i mitja) i amb una reunió
+real de Teams (54 minuts a Chrome). El que encara no s'ha provat i les limitacions conegudes són a
 [docs/limitations.md](docs/limitations.md) (en anglès).
 
 ## Què farà

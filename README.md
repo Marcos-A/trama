@@ -17,7 +17,7 @@ nothing said slips through and the plot can always be followed.
 Edge tab with its audio, repairs the file so it can be seeked, and saves it as WebM or MP4. It
 has been tested on macOS with Chrome's real tab capture of a stand-in meeting tab (automated,
 up to two hours with the window minimised) and by hand with ordinary tabs (up to two and a half
-hours), but not yet with a real Teams meeting. What is still untested, and the known
+hours), and with one real Teams meeting (54 minutes in Chrome). What is still untested, and the known
 limitations, are in [docs/limitations.md](docs/limitations.md).
 
 ## What it will do

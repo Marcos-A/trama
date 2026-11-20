@@ -6,13 +6,20 @@ wrong. This is deliverable 4 of the original brief
 proposal on moving to a browser extension. The test results behind each point are in
 [manual-tests.md](manual-tests.md).
 
-## Not tested with a real Teams meeting
+## Tested with one real Teams meeting
 
-v0.1 has been tested with Chrome's real tab capture of a stand-in meeting tab, not with a real
-Teams meeting. The session with real Teams was postponed on 2026-11-18 and v0.1 is released
-without it.
+v0.1 was released after tests with Chrome's real tab capture of a stand-in meeting tab. Since
+then, one real Teams meeting has been recorded (2026-11-20, see below); the other checks with
+real Teams are still to do.
 
-What has been tested instead:
+What has been tested:
+
+- **One real Teams meeting** (2026-11-20, Chrome 157 on a managed Mac): 54 minutes of a
+  conference-like meeting in Teams on the web, joined as a listener, with Trama hidden for 45
+  of them. No gaps or silence in the recording, untouched stereo tab audio, and an MP4 with no
+  audio corrections needed; picture and sound in sync by eye, and the meeting heard normally
+  while it was recorded. The repair failed for lack of browser storage (see Known
+  limitations).
 
 - **Real tab capture, automated** (`tests/capture`): a second tab plays a stand-in meeting
   (flashes on screen and beeps out loud) and Chrome's own tab capture records it, with Trama
@@ -23,15 +30,12 @@ What has been tested instead:
 - **By hand on a Mac** (macOS Tahoe 26.7.3, Chrome and Edge 157): ordinary tabs with video and
   sound, up to 2 h 29 min in Edge, played back and converted to MP4 in QuickTime.
 
-Untested, and still to check in a session with real Teams:
+Untested, and still to check with real Teams:
 
 | Check | Why it is not covered |
 |---|---|
-| Recording a real Teams meeting (brief §6 checks 1 and 2) | The stand-in tab plays its own markers; Teams' video and sound pipeline was never in the loop |
 | The real picker and its "Share tab audio" box | The tests answer the picker with a browser switch. Cancelling it (7a) and recording without sound (7e) are tested with a simulated stream |
 | Stopping from the browser's "Stop sharing" bar (7b) | The tests end the shared track or close the shared tab; none clicks the bar |
-| WebRTC | Teams plays the other participants through a WebRTC call. The automated WebRTC variants are skipped: the test container has no network, and the loopback call does not connect on the macOS runner |
-| Hearing the meeting while it is recorded (check 4) | Trama asks the browser to keep the tab audible (`suppressLocalAudioPlayback: false`), but nobody has listened to a Teams meeting while recording it |
 | Listening to an AAC MP4 of speech or music | The MP4's sound timing was checked by measurement after the 2026-11-17 change, not by ear |
 
 ## Where it works
@@ -70,6 +74,15 @@ Untested, and still to check in a session with real Teams:
 
 - The repair needs free space for a second copy while it runs. Without it, the video is still
   offered and saved, unrepaired, with a warning.
+- **Chrome can give Trama much less storage than the disk has free.** On a managed Mac, Chrome
+  kept its storage on a 6 GB volume and limited Trama to about 1.3 GB (an estimate from the
+  numbers; the recording fitted and its repair copy did not), although the disk had
+  505 GB free; Chrome itself reported 10 GB free, so Trama cannot warn in advance. At 22.6 MB
+  per minute (a tall Retina window), that is about 58 minutes: a longer recording would stop
+  with the out-of-space message, and the 54-minute one could not be repaired. Until this is
+  fixed, on such a computer keep recordings under about 50 minutes, save them as MP4 (written
+  straight to the chosen file, not limited), and delete each browser copy once saved.
+  `chrome://quota-internals` shows the volume's size ("Total Space").
 - The browser copy is deleted by hand (**Esborra la còpia del navegador**) after saving.
 - **Desa en MP4** re-encodes the whole video, so it takes a while on long recordings (2–2½-hour
   recordings took 9–17 minutes on the Macs tested) and Trama's tab must stay open. Where
