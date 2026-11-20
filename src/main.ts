@@ -611,7 +611,7 @@ async function showBuild(): Promise<void> {
     else if (release) parts = [footerLink(release.tag, `${REPO_URL}/releases/tag/${release.tag}`), ' · ', commit];
     else parts = ['Build ', commit];
     build.title = [`Darrera versió: ${release?.tag ?? 'cap'}`, `Commit desplegat: ${sha}`, `Entorn: ${label}`].join(' · ');
-    build.replaceChildren(' · ', ...parts);
+    build.replaceChildren(...parts);
   } catch {
     // No build info in dev; nothing to show.
   }
